@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Microbarometer Dashboard - Interactive Slider Simulation</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #121214;
+      --card-bg: #1e1e24;
+      --text: #f0f0f5;
+      --accent-cyan: #00f0ff;
+      --accent-green: #00ff66;
+      --accent-red: #ff3366;
+      --accent-orange: #ffaa00;
+      --border: #33333d;
+    }
+    body {
+      margin: 0;
+      padding: 16px;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    h1 {
+      font-size: 1.3rem;
+      margin: 0 0 12px 0;
+      color: var(--accent-cyan);
+    }
+    .control-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: #a0a0b0;
+    }
+    .val-badge {
+      color: var(--accent-cyan);
+      font-weight: bold;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #2b2b36;
+      border-radius: 4px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 0 4px var(--accent-cyan);
+    }
+    .control-group select {
+      background: #2b2b36;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    .btn {
+      background: var(--accent-cyan);
+      color: #000;
+      font-weight: bold;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: auto;
+    }
+    .btn:hover { opacity: 0.9; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .tile {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      height: 320px;
+    }
+    .tile-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .canvas-container {
+      flex: 1;
+      position: relative;
+    }
+    .metric-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      text-align: center;
+      gap: 12px;
+    }
+    .metric-value {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    .status-badge {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .status-normal { background: rgba(0, 255, 102, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .status-event { background: rgba(255, 51, 102, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); animation: blink 0.8s infinite alternate; }
+    @keyframes blink { from { opacity: 0.7; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <h1>Microbarometer Simulation </h1>
+
+  <!-- Interactive Slider Control Panel -->
+  <div class="control-panel">
+    <!-- Slider 1: Signal Frequency -->
+    <div class="control-group">
+      <div class="label-row">
+        <span>Signal Frequency:</span>
+        <span class="val-badge" id="badgeFreq">2.0 Hz</span>
+      </div>
+      <input type="range" id="sliderFreq" min="0.1" max="20.0" step="0.1" value="2.0" oninput="updateLabels()" />
+    </div>
+
+    <!-- Slider 2: Signal Amplitude -->
+    <div class="control-group">
+      <div class="label-row">
+        <span>Acoustic Amplitude:</span>
+        <span class="val-badge" id="badgeAmp">50 mPa</span>
+      </div>
+      <input type="range" id="sliderAmp" min="0" max="200" step="5" value="50" oninput="updateLabels()" />
+    </div>
+
+    <!-- Slider 3: DC Baseline Drift -->
+    <div class="control-group">
+      <div class="label-row">
+        <span>DC Thermal Drift:</span>
+        <span class="val-badge" id="badgeDrift">10 Pa/min</span>
+      </div>
+      <input type="range" id="sliderDrift" min="0" max="100" step="5" value="10" oninput="updateLabels()" />
+    </div>
+
+    <!-- Slider 4: Noise Level -->
+    <div class="control-group">
+      <div class="label-row">
+        <span>Noise Floor Level:</span>
+        <span class="val-badge" id="badgeNoise">8 mPa</span>
+      </div>
+      <input type="range" id="sliderNoise" min="0" max="50" step="1" value="8" oninput="updateLabels()" />
+    </div>
+
+    <!-- Slider 5: STA Window -->
+    <div class="control-group">
+      <div class="label-row">
+        <span>STA Window:</span>
+        <span class="val-badge" id="badgeSTA">1.0 s</span>
+      </div>
+      <input type="range" id="sliderSTA" min="0.2" max="3.0" step="0.1" value="1.0" oninput="updateLabels()" />
+    </div>
+
+    <!-- Slider 6: LTA Window -->
+    <div class="control-group">
+      <div class="label-row">
+        <span>LTA Window:</span>
+        <span class="val-badge" id="badgeLTA">15.0 s</span>
+      </div>
+      <input type="range" id="sliderLTA" min="5.0" max="30.0" step="1.0" value="15.0" oninput="updateLabels()" />
+    </div>
+
+    <!-- Slider 7: STA/LTA Threshold -->
+    <div class="control-group">
+      <div class="label-row">
+        <span>Trigger Threshold:</span>
+        <span class="val-badge" id="badgeThresh">3.5x</span>
+      </div>
+      <input type="range" id="sliderThresh" min="1.5" max="8.0" step="0.1" value="3.5" oninput="updateLabels()" />
+    </div>
+
+    <!-- DSP Mode Toggle & Action Button -->
+    <div class="control-group">
+      <div class="label-row">
+        <span>Pre-FFT Conditioning:</span>
+      </div>
+      <select id="selectDSPMode">
+        <option value="clean">Full (Detrend + Hann + Clean)</option>
+        <option value="raw">None (Raw DC Spike Visible)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <button class="btn" onclick="triggerImpulseEvent()">Simulate Pressure Pulse</button>
+    </div>
+  </div>
+
+  <!-- 4 Dashboard Tiles Grid -->
+  <div class="grid">
+    <!-- Tile 1: Time-Domain Waveforms -->
+    <div class="tile">
+      <div class="tile-title">
+        <span>Infrasound Waveforms</span>
+        <span style="color: #888;">Raw vs Filtered ΔP</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="chartTimeDomain"></canvas>
+      </div>
+    </div>
+
+    <!-- Tile 2: Live Frequency Spectrum (FFT) -->
+    <div class="tile">
+      <div class="tile-title">
+        <span>Frequency Spectrum (FFT)</span>
+        <span style="color: #888;">0.01 - 20 Hz</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="chartFFT"></canvas>
+      </div>
+    </div>
+
+    <!-- Tile 3: Power Spectral Density (PSD) -->
+    <div class="tile">
+      <div class="tile-title">
+        <span>Power Spectral Density (PSD)</span>
+        <span style="color: #888;">dB re 1 Pa²/Hz</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="chartPSD"></canvas>
+      </div>
+    </div>
+
+    <!-- Tile 4: Event Alert & Metrics -->
+    <div class="tile">
+      <div class="tile-title">
+        <span>Trigger Status & Metrics</span>
+        <span id="metricTime">100 SPS</span>
+      </div>
+      <div class="metric-box">
+        <div id="triggerBadge" class="status-badge status-normal">SYSTEM NORMAL</div>
+        <div style="display: flex; gap: 32px;">
+          <div>
+            <div style="font-size: 0.75rem; color: #888;">CURRENT ΔP</div>
+            <div class="metric-value" id="valPressure">0.00 <span style="font-size: 1rem;">mPa</span></div>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; color: #888;">STA/LTA RATIO</div>
+            <div class="metric-value" id="valRatio">1.00</div>
+          </div>
+        </div>
+        <div style="font-size: 0.8rem; color: #aaa;">
+          High-Pass Cutoff: 0.01 Hz | Low-Pass Cutoff: 20.0 Hz
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       CONSTANTS & APPLICATION BUFFERS
+       ========================================================================== */
+    const FS = 100;                      // Sampling frequency: 100 SPS[cite: 1]
+    const BUFFER_SEC = 10;               // 10-second rolling display window[cite: 1]
+    const BUFFER_SIZE = FS * BUFFER_SEC; // 1000 points
+    const FFT_SIZE = 512;                // 512-point FFT buffer
+
+    let timeAxis = Array.from({length: BUFFER_SIZE}, (_, i) => (i / FS).toFixed(2));
+    let rawBuffer = new Array(BUFFER_SIZE).fill(101325.0); // Baseline atmospheric DC[cite: 1]
+    let filteredBuffer = new Array(BUFFER_SIZE).fill(0.0);
+
+    let eventBurstRemaining = 0;
+    let sampleCounter = 0;
+
+    // Synchronize UI slider labels in real time
+    function updateLabels() {
+      document.getElementById('badgeFreq').innerText = parseFloat(document.getElementById('sliderFreq').value).toFixed(1) + " Hz";
+      document.getElementById('badgeAmp').innerText = document.getElementById('sliderAmp').value + " mPa";
+      document.getElementById('badgeDrift').innerText = document.getElementById('sliderDrift').value + " Pa/min";
+      document.getElementById('badgeNoise').innerText = document.getElementById('sliderNoise').value + " mPa";
+      document.getElementById('badgeSTA').innerText = parseFloat(document.getElementById('sliderSTA').value).toFixed(1) + " s";
+      document.getElementById('badgeLTA').innerText = parseFloat(document.getElementById('sliderLTA').value).toFixed(1) + " s";
+      document.getElementById('badgeThresh').innerText = parseFloat(document.getElementById('sliderThresh').value).toFixed(1) + "x";
+
+      // Dynamically update filter center tuning if frequency is shifted
+      const currentFreq = parseFloat(document.getElementById('sliderFreq').value);
+      bandpass.updateCoefficients(currentFreq, 0.707, FS);
+    }
+
+    /* ==========================================================================
+       TILE 1 LOGIC: DETRENDING & DIGITAL BIQUAD FILTER (0.01 - 20 Hz)
+       ========================================================================== */
+    function removeDCAndDetrend(signal) {
+      const n = signal.length;
+      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+      for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += signal[i];
+        sumXY += i * signal[i];
+        sumXX += i * i;
+      }
+
+      const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+      const intercept = (sumY - slope * sumX) / n;
+
+      const detrended = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        detrended[i] = signal[i] - (slope * i + intercept);
+      }
+      return detrended;
+    }
+
+    class BiquadFilter {
+      constructor(f0, Q, fs) {
+        this.updateCoefficients(f0, Q, fs);
+        this.x1 = 0; this.x2 = 0; this.y1 = 0; this.y2 = 0;
+      }
+      updateCoefficients(f0, Q, fs) {
+        const w0 = 2 * Math.PI * Math.max(0.01, Math.min(f0, 20.0)) / fs;
+        const alpha = Math.sin(w0) / (2 * Q);
+        const b0 = alpha;
+        const b1 = 0;
+        const b2 = -alpha;
+        const a0 = 1 + alpha;
+        const a1 = -2 * Math.cos(w0);
+        const a2 = 1 - alpha;
+
+        this.b0 = b0 / a0; this.b1 = b1 / a0; this.b2 = b2 / a0;
+        this.a1 = a1 / a0; this.a2 = a2 / a0;
+      }
+      process(x) {
+        const y = this.b0 * x + this.b1 * this.x1 + this.b2 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2;
+        this.x2 = this.x1; this.x1 = x;
+        this.y2 = this.y1; this.y1 = y;
+        return y;
+      }
+    }
+
+    const bandpass = new BiquadFilter(2.0, 0.707, FS);
+
+    /* ==========================================================================
+       DATA GENERATION ENGINE
+       ========================================================================== */
+    function generateSample(userParams) {
+      const t = sampleCounter / FS;
+      sampleCounter++;
+
+      // 1. DC atmospheric pressure + dynamic drift controlled by slider[cite: 1]
+      const ambientDC = 101325.0 + (userParams.drift / 60.0) * t;
+
+      // 2. Infrasonic acoustic wave controlled by slider
+      let acousticSignal = (userParams.amp / 1000.0) * Math.sin(2 * Math.PI * userParams.freq * t);
+
+      // 3. Synthetic explosion/pulse injection[cite: 1]
+      if (eventBurstRemaining > 0) {
+        acousticSignal += (userParams.amp * 4 / 1000.0) * Math.sin(2 * Math.PI * 1.5 * t);
+        eventBurstRemaining--;
+      }
+
+      // 4. Electronic noise controlled by slider[cite: 1]
+      const noise = (Math.random() * 2 - 1) * (userParams.noise / 1000.0);
+
+      const rawPa = ambientDC + acousticSignal + noise;
+      const filteredPa = bandpass.process(acousticSignal + noise);
+
+      return { rawPa, filteredPa };
+    }
+
+    function triggerImpulseEvent() {
+      eventBurstRemaining = FS * 3; // 3-second impulse event[cite: 1]
+    }
+
+    /* ==========================================================================
+       COOLEY-TUKEY FFT ALGORITHM
+       ========================================================================== */
+    function cooleyTukeyFFT(real, imag) {
+      const n = real.length;
+      if (n <= 1) return;
+
+      const half = n / 2;
+      const evenReal = new Float64Array(half);
+      const evenImag = new Float64Array(half);
+      const oddReal = new Float64Array(half);
+      const oddImag = new Float64Array(half);
+
+      for (let i = 0; i < half; i++) {
+        evenReal[i] = real[2 * i];
+        evenImag[i] = imag[2 * i];
+        oddReal[i] = real[2 * i + 1];
+        oddImag[i] = imag[2 * i + 1];
+      }
+
+      cooleyTukeyFFT(evenReal, evenImag);
+      cooleyTukeyFFT(oddReal, oddImag);
+
+      for (let k = 0; k < half; k++) {
+        const angle = -2 * Math.PI * k / n;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const tReal = cos * oddReal[k] - sin * oddImag[k];
+        const tImag = sin * oddReal[k] + cos * oddImag[k];
+
+        real[k] = evenReal[k] + tReal;
+        imag[k] = evenImag[k] + tImag;
+        real[k + half] = evenReal[k] - tReal;
+        imag[k + half] = evenImag[k] - tImag;
+      }
+    }
+
+    /* ==========================================================================
+       TILE 2 LOGIC: FFT SPECTRUM
+       ========================================================================== */
+    function computeFFT(buffer, mode) {
+      const slice = buffer.slice(-FFT_SIZE);
+      const real = new Float64Array(FFT_SIZE);
+      const imag = new Float64Array(FFT_SIZE);
+
+      let processedSignal;
+      if (mode === "clean") {
+        processedSignal = removeDCAndDetrend(slice);
+      } else {
+        processedSignal = slice;
+      }
+
+      // Apply Hann Window[cite: 1]
+      for (let i = 0; i < FFT_SIZE; i++) {
+        const hann = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (FFT_SIZE - 1)));
+        real[i] = processedSignal[i] * hann;
+      }
+
+      cooleyTukeyFFT(real, imag);
+
+      const half = FFT_SIZE / 2;
+      const freqs = [];
+      const magnitudes = [];
+
+      for (let i = 1; i < half; i++) {
+        const freq = (i * FS) / FFT_SIZE;
+        if (freq <= 20.0) { // Target 0.01 - 20 Hz infrasound band[cite: 1]
+          freqs.push(freq.toFixed(2));
+          const mag = (2 * Math.sqrt(real[i] * real[i] + imag[i] * imag[i])) / FFT_SIZE;
+          magnitudes.push(mag * 1000.0); // Convert Pa to mPa
+        }
+      }
+      return { freqs, magnitudes };
+    }
+
+    /* ==========================================================================
+       TILE 3 LOGIC: POWER SPECTRAL DENSITY (PSD)
+       ========================================================================== */
+    function computePSD(buffer) {
+      const segSize = 256;
+      const slice = buffer.slice(-segSize);
+      const detrended = removeDCAndDetrend(slice);
+      
+      const real = new Float64Array(segSize);
+      const imag = new Float64Array(segSize);
+
+      for (let i = 0; i < segSize; i++) {
+        const hann = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (segSize - 1)));
+        real[i] = detrended[i] * hann;
+      }
+
+      cooleyTukeyFFT(real, imag);
+
+      const half = segSize / 2;
+      const freqs = [];
+      const psdDB = [];
+
+      for (let i = 1; i < half; i++) {
+        const freq = (i * FS) / segSize;
+        if (freq <= 20.0) {
+          freqs.push(freq.toFixed(1));
+          const power = (real[i] * real[i] + imag[i] * imag[i]) / (segSize * FS);
+          const db = 10 * Math.log10(Math.max(power, 1e-12)); // dB re 1 Pa²/Hz[cite: 1]
+          psdDB.push(db.toFixed(1));
+        }
+      }
+      return { freqs, psdDB };
+    }
+
+    /* ==========================================================================
+       TILE 4 LOGIC: STA / LTA TRIGGER ENGINE
+       ========================================================================== */
+    function computeSTALTA(buffer, staSec, ltaSec, threshold) {
+      const staPoints = Math.max(1, Math.floor(staSec * FS));
+      const ltaPoints = Math.max(staPoints, Math.floor(ltaSec * FS));
+
+      const slice = buffer.slice(-ltaPoints);
+      let ltaEnergy = 0, staEnergy = 0;
+
+      for (let i = 0; i < slice.length; i++) {
+        const e = slice[i] * slice[i];
+        ltaEnergy += e;
+        if (i >= slice.length - staPoints) staEnergy += e;
+      }
+
+      const sta = staEnergy / staPoints;
+      const lta = (ltaEnergy / slice.length) + 1e-9;
+      const ratio = sta / lta;
+
+      return {
+        ratio: ratio.toFixed(2),
+        isTriggered: ratio >= threshold, // Event flag if above threshold[cite: 1]
+        latestVal: (buffer[buffer.length - 1] * 1000.0).toFixed(2)
+      };
+    }
+
+    /* ==========================================================================
+       CHART CONFIGURATION
+       ========================================================================== */
+    const chartTime = new Chart(document.getElementById('chartTimeDomain').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: timeAxis,
+        datasets: [{
+          label: 'Filtered Infrasound ΔP (mPa)',
+          borderColor: '#00f0ff',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          data: filteredBuffer
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: { ticks: { color: '#888', maxTicksLimit: 6 } },
+          y: { ticks: { color: '#888' } }
+        },
+        plugins: { legend: { labels: { color: '#eee' } } }
+      }
+    });
+
+    const chartFFT = new Chart(document.getElementById('chartFFT').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Magnitude (mPa)',
+          borderColor: '#00ff66',
+          backgroundColor: 'rgba(0, 255, 102, 0.1)',
+          fill: true,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          data: []
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: { title: { display: true, text: 'Frequency (Hz)', color: '#888' }, ticks: { color: '#888' } },
+          y: { title: { display: true, text: 'mPa', color: '#888' }, ticks: { color: '#888' } }
+        },
+        plugins: { legend: { labels: { color: '#eee' } } }
+      }
+    });
+
+    const chartPSD = new Chart(document.getElementById('chartPSD').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Noise Floor (dB/Hz)',
+          borderColor: '#ffaa00',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          data: []
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: { title: { display: true, text: 'Frequency (Hz)', color: '#888' }, ticks: { color: '#888' } },
+          y: { title: { display: true, text: 'dB re 1 Pa²/Hz', color: '#888' }, ticks: { color: '#888' } }
+        },
+        plugins: { legend: { labels: { color: '#eee' } } }
+      }
+    });
+
+    /* ==========================================================================
+       MAIN RUN LOOP (20 FPS)
+       ========================================================================== */
+    setInterval(() => {
+      // Read current values directly from slider elements
+      const userParams = {
+        freq: parseFloat(document.getElementById('sliderFreq').value),
+        amp: parseFloat(document.getElementById('sliderAmp').value),
+        drift: parseFloat(document.getElementById('sliderDrift').value),
+        noise: parseFloat(document.getElementById('sliderNoise').value),
+        sta: parseFloat(document.getElementById('sliderSTA').value),
+        lta: parseFloat(document.getElementById('sliderLTA').value),
+        thresh: parseFloat(document.getElementById('sliderThresh').value),
+        dspMode: document.getElementById('selectDSPMode').value
+      };
+
+      // Generate 5 incoming samples per tick (100 SPS rate)[cite: 1]
+      for (let i = 0; i < 5; i++) {
+        const { rawPa, filteredPa } = generateSample(userParams);
+        rawBuffer.shift();
+        rawBuffer.push(rawPa);
+        filteredBuffer.shift();
+        filteredBuffer.push(filteredPa);
+      }
+
+      // 1. Update Tile 1 Time Plot
+      chartTime.data.datasets[0].data = filteredBuffer.map(v => (v * 1000).toFixed(2));
+      chartTime.update('none');
+
+      // 2. Update Tile 2 FFT Plot[cite: 1]
+      const inputSignal = userParams.dspMode === "raw" ? rawBuffer : filteredBuffer;
+      const fftRes = computeFFT(inputSignal, userParams.dspMode);
+      chartFFT.data.labels = fftRes.freqs;
+      chartFFT.data.datasets[0].data = fftRes.magnitudes;
+      chartFFT.update('none');
+
+      // 3. Update Tile 3 PSD Plot[cite: 1]
+      const psdRes = computePSD(filteredBuffer);
+      chartPSD.data.labels = psdRes.freqs;
+      chartPSD.data.datasets[0].data = psdRes.psdDB;
+      chartPSD.update('none');
+
+      // 4. Update Tile 4 STA/LTA Trigger Metrics[cite: 1]
+      const metrics = computeSTALTA(filteredBuffer, userParams.sta, userParams.lta, userParams.thresh);
+      document.getElementById('valPressure').innerText = metrics.latestVal;
+      document.getElementById('valRatio').innerText = metrics.ratio;
+
+      const badge = document.getElementById('triggerBadge');
+      if (metrics.isTriggered) {
+        badge.className = 'status-badge status-event';
+        badge.innerText = '🚨 EVENT DETECTED';
+      } else {
+        badge.className = 'status-badge status-normal';
+        badge.innerText = 'SYSTEM NORMAL';
+      }
+    }, 50);
+
+    // Initial label setup
+    updateLabels();
+  </script>
+</body>
+</html>
