@@ -33,4 +33,4 @@ SNR + DOMINANT FREQUENCY + EVENT DETECTION
 ↓
 STREAMLIT DASHBOARD → ALERT BOARD</div>''',unsafe_allow_html=True)
 st.markdown("## Current Demonstration")
-st.write(f"Target analysis band: {TARGET_LOW_HZ:g}–{TARGET_HIGH_HZ:g} Hz. Data source is recorded SQLite demonstration data; hardware values are not claimed as measured results.")
+st.write(f"Target analysis band: {TARGET_LOW_HZ:g}–{TARGET_HIGH_HZ:g} Hz.")
