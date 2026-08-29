@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Microbarometer Prototype — 3D Reference Model</title>
+<style>
+  :root{
+    --orange:#e8792c; --purple:#8a4fd6; --blue:#2f7fd6; --green:#2fa86a;
+    --ink:#1b1e24; --paper:#f6f7f9; --line:#d8dce2; --muted:#8a8f98;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:var(--paper);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow:hidden;}
+  #scene{width:100%;height:100%;display:block;cursor:grab;}
+  #scene:active{cursor:grabbing;}
+
+  #hud{
+    position:fixed; top:0; left:0; right:0; padding:16px 20px 8px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    pointer-events:none; z-index:5;
+  }
+  #title{font-size:14px; font-weight:700; color:var(--ink); letter-spacing:.02em;}
+  #title small{display:block; font-size:10px; font-weight:500; color:var(--muted); margin-top:2px;}
+
+  #controls{
+    position:fixed; top:16px; right:16px; z-index:6; display:flex; gap:6px; pointer-events:auto;
+  }
+  .btn{
+    min-width:32px;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);
+    box-shadow:0 1px 2px rgba(0,0,0,.06);
+  }
+  .btn:hover{background:#f2f3f5;}
+
+  #hint{
+    position:fixed; bottom:14px; left:14px;
+    font-size:10.5px; color:var(--muted); background:rgba(255,255,255,.9);
+    padding:6px 12px; border-radius:20px; border:1px solid var(--line); z-index:5;
+  }
+
+  #panel{
+    position:fixed; top:64px; right:16px; width:230px; max-height:calc(100% - 130px);
+    overflow-y:auto; background:rgba(255,255,255,.94); backdrop-filter:blur(6px);
+    border:1px solid var(--line); border-radius:12px; padding:10px; z-index:5;
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
+  }
+  #panel h4{margin:2px 6px 8px; font-size:10px; letter-spacing:.06em; color:var(--muted); text-transform:uppercase;}
+  .part{display:flex; gap:8px; align-items:flex-start; padding:6px 6px; border-radius:8px;}
+  .part:hover{background:#f2f3f5;}
+  .part .num{
+    width:18px;height:18px;border-radius:50%;color:#fff;font-size:10px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px;
+  }
+  .part .txt{font-size:11.5px; line-height:1.3; color:var(--ink);}
+  .part .txt b{font-weight:700;}
+  .part .txt span{display:block; font-size:9.5px; color:var(--muted); margin-top:1px;}
+
+  .pin{
+    position:absolute; width:20px; height:20px; border-radius:50%; color:#fff;
+    font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    transform:translate(-50%,-50%); border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.35);
+    pointer-events:none; z-index:4;
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div id="title">MICROBAROMETER PROTOTYPE<small>Conceptual 3D reference — cutaway view, not a finished build</small></div>
+</div>
+
+<div id="controls">
+  <div class="btn" id="zoomIn">+</div>
+  <div class="btn" id="zoomOut">–</div>
+  <div class="btn" id="resetBtn">⟲ Reset view</div>
+</div>
+
+<div id="hint">Drag to rotate 360° in any direction · scroll to zoom</div>
+
+<canvas id="scene"></canvas>
+<div id="pinLayer" style="position:fixed;inset:0;pointer-events:none;"></div>
+
+<div id="panel">
+  <h4>Parts key</h4>
+  <div id="partList"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const HEX = { orange:0xe8792c, purple:0x8a4fd6, blue:0x2f7fd6, green:0x2fa86a, metal:0xb9bfc7, dark:0x24272d };
+const CSS = { orange:'#e8792c', purple:'#8a4fd6', blue:'#2f7fd6', green:'#2fa86a' };
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf6f7f9);
+
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+const camera = new THREE.PerspectiveCamera(38, innerWidth/innerHeight, 0.1, 100);
+let camDist = 12.5;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(6,9,7); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 0.4); fill.position.set(-7,3,-5); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(0,-4,-8); scene.add(rim);
+
+const rig = new THREE.Group();
+scene.add(rig);
+
+// ground disc
+{
+  const g = new THREE.Mesh(new THREE.CircleGeometry(5.4,64), new THREE.MeshBasicMaterial({color:0xeceef1}));
+  g.rotation.x = -Math.PI/2; g.position.y = -2.5;
+  rig.add(g);
+}
+
+// registry of trackable parts: {mesh, num, color, title, sub}
+const PARTS = [];
+function track(mesh, color, title, sub, offsetY=0){
+  const num = PARTS.length + 1;
+  PARTS.push({mesh, color, title, sub, offsetY, num});
+  return num;
+}
+
+// ================= 1. WIND-NOISE CAP (perforated dome) =================
+const capMat = new THREE.MeshStandardMaterial({ color:HEX.orange, roughness:.55 });
+const cap = new THREE.Mesh(new THREE.SphereGeometry(0.62,28,16,0,Math.PI*2,0,Math.PI/2), capMat);
+cap.position.y = 3.55;
+rig.add(cap);
+for(let i=0;i<30;i++){
+  const th = (i/30)*Math.PI*2 + (i%3)*0.15;
+  const ph = 0.18 + (i%3)*0.22;
+  const r = 0.622;
+  const dot = new THREE.Mesh(new THREE.CircleGeometry(0.04,8), new THREE.MeshBasicMaterial({color:0x5c3212}));
+  const pos = new THREE.Vector3(r*Math.sin(ph)*Math.cos(th), 3.55+r*Math.cos(ph), r*Math.sin(ph)*Math.sin(th));
+  dot.position.copy(pos);
+  dot.lookAt(new THREE.Vector3(0,3.55,0).multiplyScalar(-1).add(pos.clone().multiplyScalar(2)));
+  rig.add(dot);
+}
+track(cap, CSS.orange, 'Wind-Noise Cap', 'Porous inlet averages out gusts');
+
+// ================= 2. INLET TUBE =================
+const tubeMat = new THREE.MeshStandardMaterial({ color:HEX.orange, roughness:.4 });
+const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.065,1.1,16), tubeMat);
+tube.position.y = 2.85;
+rig.add(tube);
+track(tube, CSS.orange, 'Inlet Tube', 'Connects cap to reference chamber');
+
+// ================= 3. SEALED REFERENCE CHAMBER — CUTAWAY =================
+const chamberMat = new THREE.MeshStandardMaterial({ color:0xf3d7bd, roughness:.35, side:THREE.DoubleSide });
+const chamber = new THREE.Mesh(
+  new THREE.CylinderGeometry(1.05,1.05,1.7,40,1,false, -Math.PI*0.15, Math.PI*1.7),
+  chamberMat
+);
+chamber.position.y = 1.4;
+rig.add(chamber);
+const rimMat = new THREE.MeshStandardMaterial({color:HEX.orange, roughness:.4});
+[2.25,0.55].forEach(y=>{
+  const r = new THREE.Mesh(new THREE.TorusGeometry(1.05,0.045,10,40), rimMat);
+  r.rotation.x = Math.PI/2; r.position.y = y;
+  rig.add(r);
+});
+track(chamber, CSS.orange, 'Sealed Reference Chamber', 'Cutaway shown — airtight in real build');
+
+// ================= 4. MEMS TRANSDUCER (inside chamber) =================
+const sensorMat = new THREE.MeshStandardMaterial({color:HEX.purple, roughness:.3, metalness:.4});
+const sensor = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.18,0.5), sensorMat);
+sensor.position.set(0,1.05,0);
+rig.add(sensor);
+const die = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.05,0.22), new THREE.MeshStandardMaterial({color:0x111318}));
+die.position.set(0,1.16,0);
+rig.add(die);
+track(sensor, CSS.purple, 'MEMS Transducer', 'Piezoresistive/capacitive pressure chip');
+
+const leadMat = new THREE.MeshStandardMaterial({color:HEX.metal, metalness:.7, roughness:.3});
+const mount = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.35,8), leadMat);
+mount.position.set(0.8,0.85,0); mount.rotation.z = Math.PI/2.2;
+rig.add(mount);
+track(mount, '#9aa1ab', 'Mounting Bracket', 'Isolates sensor from vibration');
+
+// ================= 5. ELECTRONICS ENCLOSURE =================
+const boxMat = new THREE.MeshStandardMaterial({ color:0xe9ebee, roughness:.5 });
+const enclosure = new THREE.Mesh(new THREE.BoxGeometry(2.1,0.9,1.5), boxMat);
+enclosure.position.y = -0.35;
+rig.add(enclosure);
+const lid = new THREE.Mesh(new THREE.BoxGeometry(2.14,0.06,1.54), new THREE.MeshStandardMaterial({color:0xd3d6db}));
+lid.position.y = 0.13;
+rig.add(lid);
+track(enclosure, '#8a8f98', 'Electronics Enclosure', 'Houses analog + digital stages');
+[[-0.95,-0.65],[0.95,-0.65],[-0.95,0.65],[0.95,0.65]].forEach(([x,z])=>{
+  const s = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.02,10), new THREE.MeshStandardMaterial({color:0x555}));
+  s.position.set(x,0.16,z);
+  rig.add(s);
+});
+
+const pcb = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.05,1.2), new THREE.MeshStandardMaterial({color:0x1c4d2e}));
+pcb.position.y = 0.16;
+rig.add(pcb);
+track(pcb, '#1c4d2e', 'PCB', 'Perfboard/custom board carrying all ICs');
+
+function chip(x,z,w,d,h,color){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshStandardMaterial({color,roughness:.35,metalness:.3}));
+  m.position.set(x,0.19+h/2,z);
+  rig.add(m);
+  return m;
+}
+const ampChip = chip(-0.65,-0.28,0.34,0.34,0.14,HEX.purple);
+track(ampChip, CSS.purple, 'Low-Noise Amplifier', 'Boosts weak sensor signal (INA333-class)');
+const filtChip = chip(-0.2,-0.28,0.3,0.3,0.13,HEX.purple);
+track(filtChip, CSS.purple, 'Filter Stage', 'High-pass + anti-aliasing low-pass');
+const adcChip = chip(0.3,-0.28,0.32,0.32,0.16,HEX.blue);
+track(adcChip, CSS.blue, 'ADC', '16-bit (ADS1115-class) digitizer');
+const mcuChip = chip(0.85,-0.28,0.42,0.42,0.13,HEX.blue);
+track(mcuChip, CSS.blue, 'Microcontroller', 'ESP32 — sampling + streaming');
+const tempChip = chip(-0.55,0.25,0.26,0.26,0.1,HEX.green);
+track(tempChip, CSS.green, 'Temp/Humidity Sensor', 'Feeds drift compensation model');
+
+const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.015,0.25,6), new THREE.MeshStandardMaterial({color:0x333}));
+ant.position.set(1.05,0.42,-0.28);
+rig.add(ant);
+track(ant, '#333', 'Wi-Fi Antenna', 'Optional remote dashboard link');
+
+// ================= USB CABLE =================
+const curve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(1.05,-0.35,0.75),
+  new THREE.Vector3(2.0,-0.8,1.6),
+  new THREE.Vector3(3.1,-1.3,2.3),
+  new THREE.Vector3(4.0,-1.55,2.6),
+]);
+const cable = new THREE.Mesh(new THREE.TubeGeometry(curve,40,0.045,8,false), new THREE.MeshStandardMaterial({color:0x2b2f36}));
+rig.add(cable);
+track(cable, '#2b2f36', 'USB Cable', 'Streams timestamped data to PC');
+
+// ================= LAPTOP =================
+const laptop = new THREE.Group();
+const laptopMat = new THREE.MeshStandardMaterial({color:0xd6d9de, roughness:.4, metalness:.2});
+laptop.add(new THREE.Mesh(new THREE.BoxGeometry(2.4,0.1,1.6), laptopMat));
+const screenFrame = new THREE.Mesh(new THREE.BoxGeometry(2.4,1.5,0.08), laptopMat);
+screenFrame.position.set(0,0.8,-0.76); screenFrame.rotation.x = -0.28;
+laptop.add(screenFrame);
+
+const wfCanvas = document.createElement('canvas');
+wfCanvas.width = 512; wfCanvas.height = 320;
+const wfCtx = wfCanvas.getContext('2d');
+const wfTex = new THREE.CanvasTexture(wfCanvas);
+const screenPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.15,1.28), new THREE.MeshBasicMaterial({map:wfTex}));
+screenPlane.position.set(0,0.8,-0.715); screenPlane.rotation.x = -0.28;
+laptop.add(screenPlane);
+laptop.position.set(5.7,-2.05,3.4);
+laptop.rotation.y = -0.55;
+rig.add(laptop);
+track(screenPlane, CSS.green, 'PC Dashboard', 'Live waveform, FFT, PSD, event log');
+
+let wfT = 0;
+function drawWaveform(){
+  wfT += 0.06;
+  wfCtx.fillStyle = '#0d1117'; wfCtx.fillRect(0,0,512,320);
+  wfCtx.strokeStyle = '#5ee0a0'; wfCtx.lineWidth = 3;
+  wfCtx.beginPath();
+  for(let x=0;x<512;x++){
+    const t = x/512*Math.PI*4 + wfT;
+    const y = 160 + Math.sin(t)*40*Math.sin(wfT*0.3) + Math.sin(t*3.3)*10;
+    x===0 ? wfCtx.moveTo(x,y) : wfCtx.lineTo(x,y);
+  }
+  wfCtx.stroke();
+  wfCtx.fillStyle = '#8fa3b0'; wfCtx.font = '18px monospace';
+  wfCtx.fillText('P(t) — live', 16, 28);
+  wfTex.needsUpdate = true;
+}
+
+// ================= PARTS PANEL (static list) =================
+const partListEl = document.getElementById('partList');
+PARTS.forEach(p=>{
+  const row = document.createElement('div');
+  row.className = 'part';
+  row.innerHTML = `<div class="num" style="background:${p.color}">${p.num}</div>
+                    <div class="txt"><b>${p.title}</b><span>${p.sub}</span></div>`;
+  partListEl.appendChild(row);
+});
+
+// ================= FLOATING PINS =================
+const pinLayer = document.getElementById('pinLayer');
+const pinEls = PARTS.map(p=>{
+  const el = document.createElement('div');
+  el.className = 'pin';
+  el.style.background = p.color;
+  el.textContent = p.num;
+  pinLayer.appendChild(el);
+  return el;
+});
+function updatePins(){
+  const v = new THREE.Vector3();
+  PARTS.forEach((p,i)=>{
+    p.mesh.getWorldPosition(v);
+    v.y += p.offsetY;
+    const proj = v.clone().project(camera);
+    const el = pinEls[i];
+    if(proj.z > 1){ el.style.display='none'; return; }
+    el.style.display='flex';
+    el.style.left = ((proj.x*0.5+0.5)*innerWidth) + 'px';
+    el.style.top = ((-proj.y*0.5+0.5)*innerHeight) + 'px';
+  });
+}
+
+// ================= INTERACTION — free-drag 360° view, NO auto-rotation =================
+let dragging=false, lastX=0, lastY=0;
+let rotY = 0.6, rotX = 0.16;
+
+canvas.addEventListener('pointerdown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; });
+window.addEventListener('pointerup', ()=> dragging=false);
+window.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  rotY += (e.clientX-lastX)*0.008;
+  rotX += (e.clientY-lastY)*0.007;
+  rotX = Math.max(-1.4, Math.min(1.4, rotX));
+  lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  camDist = Math.max(6, Math.min(22, camDist + e.deltaY*0.01));
+}, {passive:false});
+
+document.getElementById('zoomIn').onclick = ()=> camDist = Math.max(6, camDist-1.5);
+document.getElementById('zoomOut').onclick = ()=> camDist = Math.min(22, camDist+1.5);
+document.getElementById('resetBtn').onclick = ()=>{ rotY=0.6; rotX=0.16; camDist=12.5; };
+
+function resize(){
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+function animate(){
+  requestAnimationFrame(animate);
+
+  rig.rotation.y = rotY;
+  rig.rotation.x = rotX*0.4;
+
+  camera.position.set(0, 3.0, camDist);
+  camera.lookAt(0,1.05,0);
+
+  drawWaveform();
+  updatePins();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
