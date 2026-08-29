@@ -7,7 +7,7 @@ inject_css(); header()
 info=source_info(DB_PATH)
 st.markdown("## System Status")
 c1,c2,c3,c4=st.columns(4)
-c1.metric("Data source","Recorded SQLite"); c2.metric("Sampling rate",f"{int(FS)} Hz"); c3.metric("Sample interval","10 ms"); c4.metric("Samples",info["count"])
+c1.metric("Data source","Sample"); c2.metric("Sampling rate",f"{int(FS)} Hz"); c3.metric("Sample interval","10 ms"); c4.metric("Samples",info["count"])
 st.markdown("## Signal Chain")
 st.markdown('''<div class="arch">ATMOSPHERE / INFRASOUND
 ↓
