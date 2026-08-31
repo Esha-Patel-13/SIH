@@ -23,12 +23,12 @@ def line_fig(x, y, title, xlabel, ylabel, xlim=None, logy=False):
 def spectrogram_fig(f, t, sxx):
     fig, ax = plt.subplots(figsize=(8, 3.2), dpi=120)
     if sxx.size:
+        # Convert power spectral density to dB scale
         power_db = 10 * np.log10(np.maximum(sxx, 1e-16))
-        finite = power_db[np.isfinite(power_db)]
-        if finite.size:
-            vmin, vmax = np.percentile(finite, 5), np.percentile(finite, 99.5)
-        else:
-            vmin, vmax = None, None
+        
+        # <<< CHANGED: Fixed color scale bounds instead of window percentile autoscaling
+        vmin, vmax = -80.0, -20.0
+        
         ax.pcolormesh(t, f, power_db, shading="auto", vmin=vmin, vmax=vmax)
     ax.set_title("Live spectrogram", loc="left", fontsize=11, fontweight="bold")
     ax.set_xlabel("Time (s)", fontsize=9)
@@ -36,6 +36,22 @@ def spectrogram_fig(f, t, sxx):
     ax.set_ylim(0.01, 20)
     fig.tight_layout()
     return fig
+# def spectrogram_fig(f, t, sxx):
+#     fig, ax = plt.subplots(figsize=(8, 3.2), dpi=120)
+#     if sxx.size:
+#         power_db = 10 * np.log10(np.maximum(sxx, 1e-16))
+#         finite = power_db[np.isfinite(power_db)]
+#         if finite.size:
+#             vmin, vmax = np.percentile(finite, 5), np.percentile(finite, 99.5)
+#         else:
+#             vmin, vmax = None, None
+#         ax.pcolormesh(t, f, power_db, shading="auto", vmin=vmin, vmax=vmax)
+#     ax.set_title("Live spectrogram", loc="left", fontsize=11, fontweight="bold")
+#     ax.set_xlabel("Time (s)", fontsize=9)
+#     ax.set_ylabel("Frequency (Hz)", fontsize=9)
+#     ax.set_ylim(0.01, 20)
+#     fig.tight_layout()
+#     return fig
 
 
 def calibration_placeholder_fig():
