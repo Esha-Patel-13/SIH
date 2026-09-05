@@ -50,6 +50,7 @@ def update_runtime():
         detect_f,detect_p=welch_psd(detect_window)
         baseline=st.session_state.baseline if st.session_state.baseline is not None else x[:int(FS*5)]
         det=detect_event(detect_window,baseline,detect_f,detect_p,EVENT_THRESHOLD_DB)
+        met["snr_db"] = max(0.0, float(det["ratio_db"]))
         st.session_state.analysis={"x":x,"f_fft":f_fft,"m_fft":m_fft,"f_psd":f_psd,"p_psd":p_psd,"sf":sf,"stime":stime,"sp":sp,"metrics":met,"det":det}
         st.session_state.last_dsp=now
         if det["status"]!=st.session_state.last_status and det["status"] in ("EVENT DETECTED","HIGH ACTIVITY"):

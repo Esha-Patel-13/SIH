@@ -21,3 +21,5 @@ about = st.Page("pages/6_About.py", title="About", icon=":material/info:")
 
 pg = st.navigation([monitoring, analysis, events, system, prototype, about])
 pg.run()
+
+

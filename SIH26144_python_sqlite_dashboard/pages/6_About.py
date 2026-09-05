@@ -48,5 +48,5 @@ STREAMLIT
 LIVE DASHBOARD + ALERT BOARD + EVENT LOG</div>''',unsafe_allow_html=True)
 
 st.markdown("## Data Source")
-st.write("Current demonstration: recorded SQLite data at 100 Hz. Future hardware mode: ESP32 → USB Serial → Python → the same DSP and dashboard layers.")
+st.write("Current mode: 100 Hz telemetry stream. Hardware mode: ESP32 timer-interrupt sampling → USB Serial → Python DSP engine.")
 
