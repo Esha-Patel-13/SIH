@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Microbarometer Dashboard - Interactive Slider Simulation</title>
+  <title>Microbarometer Dashboard - Infrasound Simulation & Telemetry</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -13,6 +13,7 @@
       --accent-green: #00ff66;
       --accent-red: #ff3366;
       --accent-orange: #ffaa00;
+      --accent-purple: #b388ff;
       --border: #33333d;
     }
     body {
@@ -34,7 +35,7 @@
       padding: 14px 18px;
       margin-bottom: 16px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 16px;
       align-items: center;
     }
@@ -77,6 +78,10 @@
       padding: 6px 8px;
       border-radius: 4px;
       font-size: 0.85rem;
+      outline: none;
+    }
+    .control-group select:focus {
+      border-color: var(--accent-cyan);
     }
     .btn {
       background: var(--accent-cyan);
@@ -87,6 +92,7 @@
       border-radius: 6px;
       cursor: pointer;
       margin-top: auto;
+      height: 38px;
     }
     .btn:hover { opacity: 0.9; }
     .grid {
@@ -120,18 +126,42 @@
     .metric-box {
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: space-around;
       align-items: center;
       height: 100%;
       text-align: center;
-      gap: 12px;
+      padding: 4px 0;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 28px;
+      width: 100%;
+      max-width: 360px;
+    }
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .metric-label {
+      font-size: 0.72rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
     }
     .metric-value {
-      font-size: 2rem;
+      font-size: 1.45rem;
       font-weight: bold;
     }
+    .metric-unit {
+      font-size: 0.85rem;
+      color: #aaa;
+      font-weight: normal;
+    }
     .status-badge {
-      padding: 6px 16px;
+      padding: 6px 18px;
       border-radius: 20px;
       font-size: 0.85rem;
       font-weight: bold;
@@ -144,9 +174,9 @@
 </head>
 <body>
 
-  <h1>Microbarometer Simulation </h1>
+  <h1>Microbarometer Simulation & Infrasonic DSP</h1>
 
-  <!-- Interactive Slider Control Panel -->
+  <!-- Interactive Slider & DSP Control Panel -->
   <div class="control-panel">
     <!-- Slider 1: Signal Frequency -->
     <div class="control-group">
@@ -211,7 +241,7 @@
       <input type="range" id="sliderThresh" min="1.5" max="8.0" step="0.1" value="3.5" oninput="updateLabels()" />
     </div>
 
-    <!-- DSP Mode Toggle & Action Button -->
+    <!-- Pre-FFT Conditioning Toggle -->
     <div class="control-group">
       <div class="label-row">
         <span>Pre-FFT Conditioning:</span>
@@ -222,6 +252,7 @@
       </select>
     </div>
 
+    <!-- Action Button -->
     <div class="control-group">
       <button class="btn" onclick="triggerImpulseEvent()">Simulate Pressure Pulse</button>
     </div>
@@ -229,11 +260,11 @@
 
   <!-- 4 Dashboard Tiles Grid -->
   <div class="grid">
-    <!-- Tile 1: Time-Domain Waveforms -->
+    <!-- Tile 1: Time-Domain Waveforms (Raw Amber vs Filtered Cyan) -->
     <div class="tile">
       <div class="tile-title">
         <span>Infrasound Waveforms</span>
-        <span style="color: #888;">Raw vs Filtered ΔP</span>
+        <span style="color: #888;">Raw (Amber) vs Filtered ΔP (Cyan)</span>
       </div>
       <div class="canvas-container">
         <canvas id="chartTimeDomain"></canvas>
@@ -244,7 +275,7 @@
     <div class="tile">
       <div class="tile-title">
         <span>Frequency Spectrum (FFT)</span>
-        <span style="color: #888;">0.01 - 20 Hz</span>
+        <span style="color: #888;" id="fftTileSub">0.01 - 20 Hz</span>
       </div>
       <div class="canvas-container">
         <canvas id="chartFFT"></canvas>
@@ -262,26 +293,43 @@
       </div>
     </div>
 
-    <!-- Tile 4: Event Alert & Metrics -->
+    <!-- Tile 4: Event Alert & Signal Telemetry (SNR + RMS Pressure) -->
     <div class="tile">
       <div class="tile-title">
-        <span>Trigger Status & Metrics</span>
-        <span id="metricTime">100 SPS</span>
+        <span>Trigger Status & Signal Telemetry</span>
+        <span id="metricTime" style="color: #888;">100 SPS</span>
       </div>
       <div class="metric-box">
         <div id="triggerBadge" class="status-badge status-normal">SYSTEM NORMAL</div>
-        <div style="display: flex; gap: 32px;">
-          <div>
-            <div style="font-size: 0.75rem; color: #888;">CURRENT ΔP</div>
-            <div class="metric-value" id="valPressure">0.00 <span style="font-size: 1rem;">mPa</span></div>
+        
+        <div class="metrics-grid">
+          <!-- Metric 1: Instantaneous Delta P -->
+          <div class="metric-item">
+            <div class="metric-label">Instantaneous ΔP</div>
+            <div class="metric-value" id="valPressure" style="color: var(--accent-cyan);">0.00 <span class="metric-unit">mPa</span></div>
           </div>
-          <div>
-            <div style="font-size: 0.75rem; color: #888;">STA/LTA RATIO</div>
-            <div class="metric-value" id="valRatio">1.00</div>
+          
+          <!-- Metric 2: RMS Pressure -->
+          <div class="metric-item">
+            <div class="metric-label">RMS Pressure (1s)</div>
+            <div class="metric-value" id="valRMS" style="color: var(--accent-green);">0.00 <span class="metric-unit">mPa</span></div>
+          </div>
+
+          <!-- Metric 3: STA/LTA Ratio -->
+          <div class="metric-item">
+            <div class="metric-label">STA/LTA Ratio</div>
+            <div class="metric-value" id="valRatio" style="color: var(--accent-orange);">1.00</div>
+          </div>
+
+          <!-- Metric 4: Continuous True Acoustic SNR -->
+          <div class="metric-item">
+            <div class="metric-label">Estimated SNR</div>
+            <div class="metric-value" id="valSNR" style="color: var(--accent-purple);">0.0 <span class="metric-unit">dB</span></div>
           </div>
         </div>
-        <div style="font-size: 0.8rem; color: #aaa;">
-          High-Pass Cutoff: 0.01 Hz | Low-Pass Cutoff: 20.0 Hz
+
+        <div style="font-size: 0.78rem; color: #777;">
+          Bandpass: 0.01 – 20.0 Hz | DC Baseline: 101.325 kPa
         </div>
       </div>
     </div>
@@ -291,13 +339,13 @@
     /* ==========================================================================
        CONSTANTS & APPLICATION BUFFERS
        ========================================================================== */
-    const FS = 100;                      // Sampling frequency: 100 SPS[cite: 1]
-    const BUFFER_SEC = 10;               // 10-second rolling display window[cite: 1]
+    const FS = 100;                      // Sampling frequency: 100 SPS
+    const BUFFER_SEC = 10;               // 10-second rolling display window
     const BUFFER_SIZE = FS * BUFFER_SEC; // 1000 points
     const FFT_SIZE = 512;                // 512-point FFT buffer
 
     let timeAxis = Array.from({length: BUFFER_SIZE}, (_, i) => (i / FS).toFixed(2));
-    let rawBuffer = new Array(BUFFER_SIZE).fill(101325.0); // Baseline atmospheric DC[cite: 1]
+    let rawBuffer = new Array(BUFFER_SIZE).fill(101325.0); // Baseline atmospheric DC
     let filteredBuffer = new Array(BUFFER_SIZE).fill(0.0);
 
     let eventBurstRemaining = 0;
@@ -377,19 +425,19 @@
       const t = sampleCounter / FS;
       sampleCounter++;
 
-      // 1. DC atmospheric pressure + dynamic drift controlled by slider[cite: 1]
+      // 1. DC atmospheric pressure + dynamic drift controlled by slider
       const ambientDC = 101325.0 + (userParams.drift / 60.0) * t;
 
       // 2. Infrasonic acoustic wave controlled by slider
       let acousticSignal = (userParams.amp / 1000.0) * Math.sin(2 * Math.PI * userParams.freq * t);
 
-      // 3. Synthetic explosion/pulse injection[cite: 1]
+      // 3. Synthetic explosion/pulse injection
       if (eventBurstRemaining > 0) {
         acousticSignal += (userParams.amp * 4 / 1000.0) * Math.sin(2 * Math.PI * 1.5 * t);
         eventBurstRemaining--;
       }
 
-      // 4. Electronic noise controlled by slider[cite: 1]
+      // 4. Electronic noise controlled by slider
       const noise = (Math.random() * 2 - 1) * (userParams.noise / 1000.0);
 
       const rawPa = ambientDC + acousticSignal + noise;
@@ -399,7 +447,7 @@
     }
 
     function triggerImpulseEvent() {
-      eventBurstRemaining = FS * 3; // 3-second impulse event[cite: 1]
+      eventBurstRemaining = FS * 3; // 3-second impulse event
     }
 
     /* ==========================================================================
@@ -440,7 +488,7 @@
     }
 
     /* ==========================================================================
-       TILE 2 LOGIC: FFT SPECTRUM
+       TILE 2 LOGIC: FFT SPECTRUM (Supports Clean DSP vs Raw Demo)
        ========================================================================== */
     function computeFFT(buffer, mode) {
       const slice = buffer.slice(-FFT_SIZE);
@@ -450,14 +498,17 @@
       let processedSignal;
       if (mode === "clean") {
         processedSignal = removeDCAndDetrend(slice);
+        // Apply Hann Window to remove spectral leakage
+        for (let i = 0; i < FFT_SIZE; i++) {
+          const hann = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (FFT_SIZE - 1)));
+          real[i] = processedSignal[i] * hann;
+        }
       } else {
+        // Raw DC spike & rectangular window demonstration
         processedSignal = slice;
-      }
-
-      // Apply Hann Window[cite: 1]
-      for (let i = 0; i < FFT_SIZE; i++) {
-        const hann = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (FFT_SIZE - 1)));
-        real[i] = processedSignal[i] * hann;
+        for (let i = 0; i < FFT_SIZE; i++) {
+          real[i] = processedSignal[i];
+        }
       }
 
       cooleyTukeyFFT(real, imag);
@@ -468,7 +519,7 @@
 
       for (let i = 1; i < half; i++) {
         const freq = (i * FS) / FFT_SIZE;
-        if (freq <= 20.0) { // Target 0.01 - 20 Hz infrasound band[cite: 1]
+        if (freq <= 20.0) { // Target 0.01 - 20 Hz infrasound band
           freqs.push(freq.toFixed(2));
           const mag = (2 * Math.sqrt(real[i] * real[i] + imag[i] * imag[i])) / FFT_SIZE;
           magnitudes.push(mag * 1000.0); // Convert Pa to mPa
@@ -504,7 +555,7 @@
         if (freq <= 20.0) {
           freqs.push(freq.toFixed(1));
           const power = (real[i] * real[i] + imag[i] * imag[i]) / (segSize * FS);
-          const db = 10 * Math.log10(Math.max(power, 1e-12)); // dB re 1 Pa²/Hz[cite: 1]
+          const db = 10 * Math.log10(Math.max(power, 1e-12)); // dB re 1 Pa²/Hz
           psdDB.push(db.toFixed(1));
         }
       }
@@ -512,9 +563,9 @@
     }
 
     /* ==========================================================================
-       TILE 4 LOGIC: STA / LTA TRIGGER ENGINE
+       TILE 4 LOGIC: STA/LTA, RMS PRESSURE & CONTINUOUS ACOUSTIC SNR
        ========================================================================== */
-    function computeSTALTA(buffer, staSec, ltaSec, threshold) {
+    function computeTelemetry(buffer, staSec, ltaSec, threshold, noiseParam) {
       const staPoints = Math.max(1, Math.floor(staSec * FS));
       const ltaPoints = Math.max(staPoints, Math.floor(ltaSec * FS));
 
@@ -528,30 +579,59 @@
       }
 
       const sta = staEnergy / staPoints;
-      const lta = (ltaEnergy / slice.length) + 1e-9;
+      const lta = (ltaEnergy / slice.length) + 1e-12;
       const ratio = sta / lta;
 
+      // 1. Measured RMS Pressure over the 1-second rolling window (mPa)
+      const rmsPoints = Math.min(buffer.length, FS);
+      let sumSq = 0;
+      for (let i = buffer.length - rmsPoints; i < buffer.length; i++) {
+        sumSq += buffer[i] * buffer[i];
+      }
+      const rmsPa = Math.sqrt(sumSq / rmsPoints);
+      const rms_mPa = rmsPa * 1000.0;
+
+      // 2. True Continuous Acoustic Signal-to-Noise Ratio (SNR in dB)
+      // Calculated from measured Signal RMS vs configured Noise Floor RMS
+      const noiseRMS_mPa = Math.max(0.1, (noiseParam || 8.0) / Math.sqrt(3));
+      // SNR is 20 * log10(Signal RMS / Noise RMS), bounded at 0 dB minimum
+      const snrDB = Math.max(0.0, 20 * Math.log10(Math.max(0.01, rms_mPa) / noiseRMS_mPa)).toFixed(1);
+
       return {
+        latestVal: (buffer[buffer.length - 1] * 1000.0).toFixed(2),
+        rmsVal: rms_mPa.toFixed(2),
         ratio: ratio.toFixed(2),
-        isTriggered: ratio >= threshold, // Event flag if above threshold[cite: 1]
-        latestVal: (buffer[buffer.length - 1] * 1000.0).toFixed(2)
+        snr: snrDB,
+        isTriggered: ratio >= threshold
       };
     }
 
     /* ==========================================================================
        CHART CONFIGURATION
        ========================================================================== */
+    // Tile 1: Dual-Trace Raw vs Filtered Chart
     const chartTime = new Chart(document.getElementById('chartTimeDomain').getContext('2d'), {
       type: 'line',
       data: {
         labels: timeAxis,
-        datasets: [{
-          label: 'Filtered Infrasound ΔP (mPa)',
-          borderColor: '#00f0ff',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          data: filteredBuffer
-        }]
+        datasets: [
+          {
+            label: 'Raw Pressure (Pa)',
+            borderColor: '#ffaa00',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            yAxisID: 'yRaw',
+            data: rawBuffer
+          },
+          {
+            label: 'Filtered Infrasound ΔP (mPa)',
+            borderColor: '#00f0ff',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            yAxisID: 'yFiltered',
+            data: filteredBuffer
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -559,12 +639,25 @@
         animation: false,
         scales: {
           x: { ticks: { color: '#888', maxTicksLimit: 6 } },
-          y: { ticks: { color: '#888' } }
+          yFiltered: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Filtered (mPa)', color: '#00f0ff' },
+            ticks: { color: '#00f0ff' }
+          },
+          yRaw: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Raw (Pa)', color: '#ffaa00' },
+            ticks: { color: '#ffaa00' },
+            grid: { drawOnChartArea: false }
+          }
         },
         plugins: { legend: { labels: { color: '#eee' } } }
       }
     });
 
+    // Tile 2: FFT Spectrum
     const chartFFT = new Chart(document.getElementById('chartFFT').getContext('2d'), {
       type: 'line',
       data: {
@@ -591,6 +684,7 @@
       }
     });
 
+    // Tile 3: PSD Chart
     const chartPSD = new Chart(document.getElementById('chartPSD').getContext('2d'), {
       type: 'line',
       data: {
@@ -619,7 +713,7 @@
        MAIN RUN LOOP (20 FPS)
        ========================================================================== */
     setInterval(() => {
-      // Read current values directly from slider elements
+      // Read current values directly from slider and select elements
       const userParams = {
         freq: parseFloat(document.getElementById('sliderFreq').value),
         amp: parseFloat(document.getElementById('sliderAmp').value),
@@ -631,7 +725,11 @@
         dspMode: document.getElementById('selectDSPMode').value
       };
 
-      // Generate 5 incoming samples per tick (100 SPS rate)[cite: 1]
+      // Update subtitle on FFT tile to reflect current conditioning mode
+      document.getElementById('fftTileSub').innerText = 
+        userParams.dspMode === 'clean' ? '0.01 - 20 Hz (Clean Hann Windowed)' : '⚠️ RAW UNCONDITIONED (DC Spike Visible)';
+
+      // Generate 5 incoming samples per tick (100 SPS rate)
       for (let i = 0; i < 5; i++) {
         const { rawPa, filteredPa } = generateSample(userParams);
         rawBuffer.shift();
@@ -640,27 +738,30 @@
         filteredBuffer.push(filteredPa);
       }
 
-      // 1. Update Tile 1 Time Plot
-      chartTime.data.datasets[0].data = filteredBuffer.map(v => (v * 1000).toFixed(2));
+      // 1. Update Tile 1 Time Plot (Raw Amber vs Filtered Cyan)
+      chartTime.data.datasets[0].data = rawBuffer.map(v => v.toFixed(2));
+      chartTime.data.datasets[1].data = filteredBuffer.map(v => (v * 1000).toFixed(2));
       chartTime.update('none');
 
-      // 2. Update Tile 2 FFT Plot[cite: 1]
+      // 2. Update Tile 2 FFT Plot (Raw vs Clean based on dropdown)
       const inputSignal = userParams.dspMode === "raw" ? rawBuffer : filteredBuffer;
       const fftRes = computeFFT(inputSignal, userParams.dspMode);
       chartFFT.data.labels = fftRes.freqs;
       chartFFT.data.datasets[0].data = fftRes.magnitudes;
       chartFFT.update('none');
 
-      // 3. Update Tile 3 PSD Plot[cite: 1]
+      // 3. Update Tile 3 PSD Plot
       const psdRes = computePSD(filteredBuffer);
       chartPSD.data.labels = psdRes.freqs;
       chartPSD.data.datasets[0].data = psdRes.psdDB;
       chartPSD.update('none');
 
-      // 4. Update Tile 4 STA/LTA Trigger Metrics[cite: 1]
-      const metrics = computeSTALTA(filteredBuffer, userParams.sta, userParams.lta, userParams.thresh);
-      document.getElementById('valPressure').innerText = metrics.latestVal;
+      // 4. Update Tile 4 STA/LTA, RMS Pressure & Continuous SNR Telemetry
+      const metrics = computeTelemetry(filteredBuffer, userParams.sta, userParams.lta, userParams.thresh, userParams.noise);
+      document.getElementById('valPressure').innerHTML = `${metrics.latestVal} <span class="metric-unit">mPa</span>`;
+      document.getElementById('valRMS').innerHTML = `${metrics.rmsVal} <span class="metric-unit">mPa</span>`;
       document.getElementById('valRatio').innerText = metrics.ratio;
+      document.getElementById('valSNR').innerHTML = `${metrics.snr} <span class="metric-unit">dB</span>`;
 
       const badge = document.getElementById('triggerBadge');
       if (metrics.isTriggered) {
