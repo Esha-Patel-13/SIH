@@ -940,7 +940,8 @@
       const sta = staEnergy / staPoints;
       const lta = (ltaEnergy / slice.length) + 1e-12;
       const ratio = sta / lta;
-      const isTriggered = ratio >= threshold;
+      const isWarmedUp = sampleCounter >= ltaPoints;
+      const isTriggered = isWarmedUp && (ratio >= threshold);
 
       // False Alarm Rate (FAR) & Event Transition Tracking
       const currentTimeSec = sampleCounter / FS;
@@ -1170,12 +1171,29 @@
       const pneuLabel = userParams.capillary === 'enabled' ? '0.01 Hz HPF' : 'Bypassed';
       const manifoldLabel = userParams.manifold === 'active' ? 'Active (-18 dB)' : 'Bypassed';
       document.getElementById('pipelineSummary').innerHTML = 
-        `Capillary: <b>${pneuLabel}</b> &bull; ADC: <b>${adcLabel}</b> &bull; Porous Array: <b>${manifoldLabel}</b> &bull; Noise: <b>-59 dB/Hz</b>`;
+        `Capillary: <b>${pneuLabel}</b> &bull; ADC: <b>${adcLabel}</b> &bull; Porous Manifold: <b>${manifoldLabel}</b> &bull; Noise Floor: <b>-59 dB re 1 Pa²/Hz</b>`;
 
     }, 50);
 
     // Initial label setup
     updateLabels();
+
+    // Pre-warm initial buffers so waveforms, FFT, PSD, and STA/LTA start in clean steady state
+    const initParams = {
+      freq: parseFloat(document.getElementById('sliderFreq').value),
+      amp: parseFloat(document.getElementById('sliderAmp').value),
+      drift: parseFloat(document.getElementById('sliderDrift').value),
+      noise: parseFloat(document.getElementById('sliderNoise').value),
+      wind: parseFloat(document.getElementById('sliderWind').value),
+      manifold: document.getElementById('selectManifold').value,
+      capillary: document.getElementById('selectCapillary').value,
+      adc: document.getElementById('selectADC').value
+    };
+    for (let i = 0; i < BUFFER_SIZE; i++) {
+      const { rawPa, filteredPa } = generateSample(initParams);
+      rawBuffer[i] = rawPa;
+      filteredBuffer[i] = filteredPa;
+    }
   </script>
 </body>
 </html>
