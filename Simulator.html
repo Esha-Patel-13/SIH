@@ -2,153 +2,195 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Microbarometer Dashboard - Infrasound Simulation & Telemetry</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #101014;
-      --card-bg: #1a1a22;
-      --card-header: #23232e;
+      --bg: #0f1015;
+      --card-bg: #181922;
+      --card-header: #20222e;
       --text: #f0f0f5;
-      --text-muted: #9494a8;
+      --text-muted: #8e90a6;
       --accent-cyan: #00f0ff;
       --accent-green: #00ff66;
       --accent-red: #ff3366;
       --accent-orange: #ffaa00;
       --accent-purple: #b388ff;
-      --border: #2e2e3d;
-      --input-bg: #252532;
+      --border: #282a3a;
+      --input-bg: #222433;
+      --sidebar-width: 340px;
     }
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
     body {
-      margin: 0;
-      padding: 16px;
       background-color: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-    .header-container {
+      padding: 10px 14px;
+      height: 100vh;
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    /* Top Header Bar */
+    .header-bar {
+      display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+      flex-shrink: 0;
+      gap: 12px;
+    }
+    .header-title-group {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
     }
     h1 {
-      font-size: 1.35rem;
-      margin: 0;
+      font-size: 1.15rem;
       color: var(--accent-cyan);
       letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+    .header-subtitle {
+      font-size: 0.72rem;
+      color: var(--text-muted);
     }
     .disclaimer-banner {
       background: rgba(255, 170, 0, 0.12);
       border: 1px solid rgba(255, 170, 0, 0.4);
       color: var(--accent-orange);
-      padding: 6px 12px;
+      padding: 4px 10px;
       border-radius: 6px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 500;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
+      white-space: nowrap;
     }
-    
-    /* Control Panel Layout */
-    .control-panel {
+
+    /* 70/30 Main Layout Container */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    /* Left Column: 30% Controls Sidebar */
+    .controls-sidebar {
+      width: var(--sidebar-width);
+      min-width: 320px;
+      max-width: 360px;
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 14px 18px;
-      margin-bottom: 16px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 14px 18px;
-      align-items: start;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex-shrink: 0;
     }
-    .control-section-title {
-      grid-column: 1 / -1;
-      font-size: 0.75rem;
+    .controls-sidebar::-webkit-scrollbar {
+      width: 5px;
+    }
+    .controls-sidebar::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    .controls-sidebar::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-purple);
+    }
+
+    .section-title {
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--accent-purple);
-      margin-top: 4px;
-      margin-bottom: -4px;
       font-weight: 700;
+      padding-bottom: 3px;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 4px;
+      margin-top: 2px;
     }
+
     .control-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 3px;
     }
     .label-row {
       display: flex;
       justify-content: space-between;
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       color: var(--text-muted);
     }
     .val-badge {
       color: var(--accent-cyan);
       font-weight: bold;
       font-family: monospace;
-      font-size: 0.82rem;
+      font-size: 0.76rem;
     }
     input[type="range"] {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 6px;
+      height: 4px;
       background: var(--input-bg);
-      border-radius: 4px;
+      border-radius: 3px;
       outline: none;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 13px;
+      height: 13px;
       border-radius: 50%;
       background: var(--accent-cyan);
       cursor: pointer;
-      box-shadow: 0 0 6px var(--accent-cyan);
+      box-shadow: 0 0 5px var(--accent-cyan);
       transition: transform 0.1s;
     }
     input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
+      transform: scale(1.2);
     }
-    .control-group select {
+    select {
       background: var(--input-bg);
       border: 1px solid var(--border);
       color: #fff;
-      padding: 7px 10px;
-      border-radius: 6px;
-      font-size: 0.82rem;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 0.75rem;
       outline: none;
       cursor: pointer;
     }
-    .control-group select:focus {
+    select:focus {
       border-color: var(--accent-cyan);
     }
     .btn-group {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
     .btn {
       background: var(--accent-cyan);
       color: #000;
       font-weight: 700;
-      font-size: 0.82rem;
+      font-size: 0.75rem;
       border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 6px 10px;
+      border-radius: 5px;
       cursor: pointer;
       transition: opacity 0.2s, transform 0.1s;
       flex: 1;
-      height: 36px;
+      height: 30px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -156,47 +198,50 @@
     .btn:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn:active { transform: translateY(0); }
     .btn-secondary {
-      background: #2e2e3e;
+      background: #252838;
       color: var(--accent-cyan);
       border: 1px solid var(--border);
     }
-    .btn-secondary:hover {
-      background: #3a3a4e;
-    }
+    .btn-secondary:hover { background: #32364c; }
 
-    /* Grid & Tiles */
-    .grid {
+    /* Right Column: 70% 2x2 Visualizer Matrix */
+    .visualizer-matrix {
+      flex: 1;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+      min-height: 0;
+      min-width: 0;
     }
-    @media (max-width: 960px) {
-      .grid { grid-template-columns: 1fr; }
-    }
+
     .tile {
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 8px 12px;
       display: flex;
       flex-direction: column;
-      height: 330px;
+      min-height: 0;
+      min-width: 0;
     }
     .tile-title {
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
     .canvas-container {
       flex: 1;
       position: relative;
       min-height: 0;
+      min-width: 0;
     }
-    
-    /* Telemetry & Metrics Tile */
+
+    /* Tile 4: Telemetry Box */
     .metric-box {
       display: flex;
       flex-direction: column;
@@ -204,47 +249,14 @@
       align-items: center;
       height: 100%;
       text-align: center;
-      padding: 4px 0;
-    }
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px 14px;
-      width: 100%;
-      margin: 8px 0;
-    }
-    .metric-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border);
-      padding: 6px 4px;
-      border-radius: 6px;
-    }
-    .metric-label {
-      font-size: 0.68rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 2px;
-    }
-    .metric-value {
-      font-size: 1.25rem;
-      font-weight: bold;
-      font-family: monospace;
-    }
-    .metric-unit {
-      font-size: 0.75rem;
-      color: #aaa;
-      font-weight: normal;
+      gap: 6px;
     }
     .status-badge {
-      padding: 6px 20px;
-      border-radius: 20px;
-      font-size: 0.85rem;
+      padding: 4px 16px;
+      border-radius: 16px;
+      font-size: 0.78rem;
       font-weight: bold;
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
       transition: all 0.2s;
     }
     .status-normal {
@@ -259,253 +271,311 @@
       animation: blink 0.8s infinite alternate;
     }
     @keyframes blink { from { opacity: 0.7; } to { opacity: 1; } }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px 8px;
+      width: 100%;
+      flex: 1;
+    }
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      padding: 4px;
+      border-radius: 5px;
+    }
+    .metric-label {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 2px;
+    }
+    .metric-value {
+      font-size: 1.15rem;
+      font-weight: bold;
+      font-family: monospace;
+      line-height: 1.1;
+    }
+    .metric-unit {
+      font-size: 0.68rem;
+      color: #999;
+      font-weight: normal;
+    }
     .pipeline-summary {
-      font-size: 0.73rem;
-      color: #777;
-      background: #14141a;
-      padding: 5px 10px;
+      font-size: 0.68rem;
+      color: #7d8096;
+      background: #12131b;
+      padding: 4px 8px;
       border-radius: 4px;
       width: 100%;
       text-align: center;
-      border: 1px dashed #2b2b38;
+      border: 1px dashed #2b2e40;
+      flex-shrink: 0;
+    }
+
+    /* Mobile / Small Screen Fallback */
+    @media (max-width: 980px) {
+      body {
+        height: auto;
+        overflow-y: auto;
+      }
+      .main-layout {
+        flex-direction: column;
+        height: auto;
+      }
+      .controls-sidebar {
+        width: 100%;
+        max-width: 100%;
+      }
+      .visualizer-matrix {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+      }
+      .tile {
+        height: 280px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Header & Synthetic Simulation Label -->
-  <div class="header-container">
-    <div>
+  <!-- Top Header Bar -->
+  <div class="header-bar">
+    <div class="header-title-group">
       <h1>Microbarometer Simulation & Infrasonic DSP</h1>
-      <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
-        100 SPS Pipeline &bull; Capillary HPF &bull; Porous Manifold &bull; Quantization &bull; STA/LTA Detector
-      </div>
+      <span class="header-subtitle">100 SPS Pipeline &bull; Capillary HPF &bull; Porous Manifold &bull; Quantization &bull; STA/LTA Detector</span>
     </div>
     <div class="disclaimer-banner">
       <span>⚠️</span> Synthetic-signal simulation of the DSP pipeline — no hardware measurement yet.
     </div>
   </div>
 
-  <!-- Interactive Control Panel -->
-  <div class="control-panel">
+  <!-- Main 70/30 Layout -->
+  <div class="main-layout">
     
-    <!-- Section 1: Acoustic Source -->
-    <div class="control-section-title">1. Acoustic Source & Event Generator</div>
-    
-    <div class="control-group">
-      <div class="label-row">
-        <span>Signal Frequency:</span>
-        <span class="val-badge" id="badgeFreq">2.0 Hz</span>
+    <!-- LEFT COLUMN (~30%): Compact Controls Sidebar -->
+    <aside class="controls-sidebar">
+      
+      <!-- Section 1: Acoustic Source -->
+      <div class="section-title">1. Acoustic Source</div>
+      
+      <div class="control-group">
+        <div class="label-row">
+          <span>Signal Frequency:</span>
+          <span class="val-badge" id="badgeFreq">2.0 Hz</span>
+        </div>
+        <input type="range" id="sliderFreq" min="0.01" max="20.0" step="0.01" value="2.0" oninput="updateLabels()" />
       </div>
-      <input type="range" id="sliderFreq" min="0.01" max="20.0" step="0.01" value="2.0" oninput="updateLabels()" />
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Acoustic Amplitude:</span>
-        <span class="val-badge" id="badgeAmp">50 mPa</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>Acoustic Amplitude:</span>
+          <span class="val-badge" id="badgeAmp">50 mPa</span>
+        </div>
+        <input type="range" id="sliderAmp" min="0" max="200" step="5" value="50" oninput="updateLabels()" />
       </div>
-      <input type="range" id="sliderAmp" min="0" max="200" step="5" value="50" oninput="updateLabels()" />
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Event Simulation:</span>
-      </div>
       <div class="btn-group">
         <button class="btn" onclick="triggerImpulseEvent()">Pulse (3s)</button>
         <button class="btn btn-secondary" onclick="quickFARTest()" id="btnMute">Mute Signal</button>
       </div>
-    </div>
 
-    <!-- Section 2: Environmental & Noise Physics -->
-    <div class="control-section-title">2. Environmental Drift & Noise Sources</div>
+      <!-- Section 2: Drift & Noise Physics -->
+      <div class="section-title">2. Drift & Noise Physics</div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Thermal DC Drift:</span>
-        <span class="val-badge" id="badgeDrift">10 Pa/min</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>Thermal DC Drift:</span>
+          <span class="val-badge" id="badgeDrift">10 Pa/min</span>
+        </div>
+        <input type="range" id="sliderDrift" min="0" max="100" step="5" value="10" oninput="updateLabels()" />
       </div>
-      <input type="range" id="sliderDrift" min="0" max="100" step="5" value="10" oninput="updateLabels()" />
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Sensor Noise Floor:</span>
-        <span class="val-badge" id="badgeNoise">8 mPa</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>Sensor Noise Floor:</span>
+          <span class="val-badge" id="badgeNoise">8 mPa</span>
+        </div>
+        <input type="range" id="sliderNoise" min="0" max="50" step="1" value="8" oninput="updateLabels()" />
       </div>
-      <input type="range" id="sliderNoise" min="0" max="50" step="1" value="8" oninput="updateLabels()" />
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Wind Noise (1/f Red Spectrum):</span>
-        <span class="val-badge" id="badgeWind">25 mPa</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>Wind Turbulence (1/f Red Noise):</span>
+          <span class="val-badge" id="badgeWind">25 mPa</span>
+        </div>
+        <input type="range" id="sliderWind" min="0" max="150" step="5" value="25" oninput="updateLabels()" />
       </div>
-      <input type="range" id="sliderWind" min="0" max="150" step="5" value="25" oninput="updateLabels()" />
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Porous Pipe Manifold:</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>Porous Pipe Manifold:</span>
+        </div>
+        <select id="selectManifold">
+          <option value="active">Active (-18 dB Wind Suppression)</option>
+          <option value="bypass">Bypassed (Exposed Single Port)</option>
+        </select>
       </div>
-      <select id="selectManifold">
-        <option value="active">Active (-18 dB Wind Suppression)</option>
-        <option value="bypass">Bypassed (Exposed Single Port)</option>
-      </select>
-    </div>
 
-    <!-- Section 3: Transduction & ADC Hardware -->
-    <div class="control-section-title">3. Pneumatic & ADC Hardware Architecture</div>
+      <!-- Section 3: Transduction & ADC Hardware -->
+      <div class="section-title">3. Pneumatic & ADC Hardware</div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Pneumatic HPF Corner:</span>
-        <span class="val-badge">0.01 Hz (Capillary)</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>Pneumatic Capillary Leak:</span>
+        </div>
+        <select id="selectCapillary">
+          <option value="enabled">Capillary Active (&tau;=15.9s, 0.01 Hz HPF)</option>
+          <option value="disabled">Capillary Bypassed (DC Transduced)</option>
+        </select>
       </div>
-      <select id="selectCapillary">
-        <option value="enabled">Capillary Leak Active (&tau; = 15.9 s, 0.01 Hz)</option>
-        <option value="disabled">Capillary Bypassed (Pure DC Transduced)</option>
-      </select>
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>ADC Resolution (Quantization):</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>ADC Resolution (Quantization):</span>
+        </div>
+        <select id="selectADC">
+          <option value="ads1220">ADS1220 (24-bit, LSB ≈ 0.024 mPa)</option>
+          <option value="ads1115">ADS1115 (16-bit, LSB ≈ 6.1 mPa)</option>
+          <option value="ideal">Ideal (Float32 / No Quantization)</option>
+        </select>
       </div>
-      <select id="selectADC">
-        <option value="ads1220">ADS1220 (24-bit, LSB ≈ 0.024 mPa)</option>
-        <option value="ads1115">ADS1115 (16-bit, LSB ≈ 6.1 mPa)</option>
-        <option value="ideal">Ideal (Float32 / No Quantization)</option>
-      </select>
-    </div>
 
-    <!-- Section 4: DSP Conditioning & Trigger Parameters -->
-    <div class="control-section-title">4. DSP Conditioning & Trigger Parameters</div>
+      <!-- Section 4: DSP & STA/LTA Triggering -->
+      <div class="section-title">4. DSP & STA/LTA Detector</div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Pre-FFT Conditioning:</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>Pre-FFT Conditioning:</span>
+        </div>
+        <select id="selectDSPMode">
+          <option value="clean">Full (Detrend + Hann + Clean)</option>
+          <option value="raw">None (Raw DC Spike Visible)</option>
+        </select>
       </div>
-      <select id="selectDSPMode">
-        <option value="clean">Full (Detrend + Hann + Clean)</option>
-        <option value="raw">None (Raw DC Spike Visible)</option>
-      </select>
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>STA Window:</span>
-        <span class="val-badge" id="badgeSTA">1.0 s</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>STA Window:</span>
+          <span class="val-badge" id="badgeSTA">1.0 s</span>
+        </div>
+        <input type="range" id="sliderSTA" min="0.2" max="3.0" step="0.1" value="1.0" oninput="updateLabels()" />
       </div>
-      <input type="range" id="sliderSTA" min="0.2" max="3.0" step="0.1" value="1.0" oninput="updateLabels()" />
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>LTA Window:</span>
-        <span class="val-badge" id="badgeLTA">15.0 s</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>LTA Window:</span>
+          <span class="val-badge" id="badgeLTA">15.0 s</span>
+        </div>
+        <input type="range" id="sliderLTA" min="5.0" max="30.0" step="1.0" value="15.0" oninput="updateLabels()" />
       </div>
-      <input type="range" id="sliderLTA" min="5.0" max="30.0" step="1.0" value="15.0" oninput="updateLabels()" />
-    </div>
 
-    <div class="control-group">
-      <div class="label-row">
-        <span>Trigger Threshold:</span>
-        <span class="val-badge" id="badgeThresh">3.5x</span>
+      <div class="control-group">
+        <div class="label-row">
+          <span>Trigger Threshold:</span>
+          <span class="val-badge" id="badgeThresh">3.5x</span>
+        </div>
+        <input type="range" id="sliderThresh" min="1.5" max="8.0" step="0.1" value="3.5" oninput="updateLabels()" />
       </div>
-      <input type="range" id="sliderThresh" min="1.5" max="8.0" step="0.1" value="3.5" oninput="updateLabels()" />
-    </div>
 
-  </div>
+    </aside>
 
-  <!-- 4 Dashboard Tiles Grid -->
-  <div class="grid">
-    <!-- Tile 1: Time-Domain Waveforms (Raw Amber vs Filtered Cyan) -->
-    <div class="tile">
-      <div class="tile-title">
-        <span>Infrasound Waveforms</span>
-        <span style="color: #888; font-size: 0.78rem;">Raw Total (Amber) vs Filtered &Delta;P (Cyan)</span>
+    <!-- RIGHT COLUMN (~70%): 2x2 Full Visualizer Matrix -->
+    <main class="visualizer-matrix">
+      
+      <!-- Tile 1: Time-Domain Waveforms -->
+      <div class="tile">
+        <div class="tile-title">
+          <span>Infrasound Waveforms</span>
+          <span style="color: #888; font-size: 0.72rem;">Raw Ambient (Amber) vs Filtered &Delta;P (Cyan)</span>
+        </div>
+        <div class="canvas-container">
+          <canvas id="chartTimeDomain"></canvas>
+        </div>
       </div>
-      <div class="canvas-container">
-        <canvas id="chartTimeDomain"></canvas>
-      </div>
-    </div>
 
-    <!-- Tile 2: Live Frequency Spectrum (FFT) -->
-    <div class="tile">
-      <div class="tile-title">
-        <span>Frequency Spectrum (FFT)</span>
-        <span style="color: #888; font-size: 0.78rem;" id="fftTileSub">0.01 - 20 Hz</span>
+      <!-- Tile 2: Live Frequency Spectrum (FFT) -->
+      <div class="tile">
+        <div class="tile-title">
+          <span>Frequency Spectrum (FFT)</span>
+          <span style="color: #888; font-size: 0.72rem;" id="fftTileSub">0.01 - 20 Hz (Clean Hann)</span>
+        </div>
+        <div class="canvas-container">
+          <canvas id="chartFFT"></canvas>
+        </div>
       </div>
-      <div class="canvas-container">
-        <canvas id="chartFFT"></canvas>
-      </div>
-    </div>
 
-    <!-- Tile 3: Power Spectral Density (PSD) -->
-    <div class="tile">
-      <div class="tile-title">
-        <span>Power Spectral Density (PSD)</span>
-        <span style="color: #888; font-size: 0.78rem;">dB re 1 Pa²/Hz (Welch-Corrected)</span>
+      <!-- Tile 3: Power Spectral Density (PSD) -->
+      <div class="tile">
+        <div class="tile-title">
+          <span>Power Spectral Density (PSD)</span>
+          <span style="color: #888; font-size: 0.72rem;">dB re 1 Pa²/Hz (Welch Normalized)</span>
+        </div>
+        <div class="canvas-container">
+          <canvas id="chartPSD"></canvas>
+        </div>
       </div>
-      <div class="canvas-container">
-        <canvas id="chartPSD"></canvas>
-      </div>
-    </div>
 
-    <!-- Tile 4: Event Alert & Signal Telemetry -->
-    <div class="tile">
-      <div class="tile-title">
-        <span>Trigger Status & Telemetry</span>
-        <span id="metricTime" style="color: #888; font-size: 0.78rem;">100 SPS Engine</span>
-      </div>
-      <div class="metric-box">
-        <div id="triggerBadge" class="status-badge status-normal">SYSTEM NORMAL</div>
-        
-        <div class="metrics-grid">
-          <!-- Metric 1: Instantaneous Delta P -->
-          <div class="metric-item">
-            <div class="metric-label">Instantaneous &Delta;P</div>
-            <div class="metric-value" id="valPressure" style="color: var(--accent-cyan);">0.00 <span class="metric-unit">mPa</span></div>
-          </div>
+      <!-- Tile 4: Event Alert & Signal Telemetry -->
+      <div class="tile">
+        <div class="tile-title">
+          <span>Trigger Status & Telemetry</span>
+          <span id="metricTime" style="color: #888; font-size: 0.72rem;">100 SPS Engine</span>
+        </div>
+        <div class="metric-box">
+          <div id="triggerBadge" class="status-badge status-normal">SYSTEM NORMAL</div>
           
-          <!-- Metric 2: RMS Pressure -->
-          <div class="metric-item">
-            <div class="metric-label">RMS Pressure (1s)</div>
-            <div class="metric-value" id="valRMS" style="color: var(--accent-green);">0.00 <span class="metric-unit">mPa</span></div>
+          <div class="metrics-grid">
+            <!-- Metric 1: Instantaneous Delta P -->
+            <div class="metric-item">
+              <div class="metric-label">Instantaneous &Delta;P</div>
+              <div class="metric-value" id="valPressure" style="color: var(--accent-cyan);">0.00 <span class="metric-unit">mPa</span></div>
+            </div>
+            
+            <!-- Metric 2: RMS Pressure -->
+            <div class="metric-item">
+              <div class="metric-label">RMS (1s)</div>
+              <div class="metric-value" id="valRMS" style="color: var(--accent-green);">0.00 <span class="metric-unit">mPa</span></div>
+            </div>
+
+            <!-- Metric 3: STA/LTA Ratio -->
+            <div class="metric-item">
+              <div class="metric-label">STA/LTA Ratio</div>
+              <div class="metric-value" id="valRatio" style="color: var(--accent-orange);">1.00</div>
+            </div>
+
+            <!-- Metric 4: Estimated SNR -->
+            <div class="metric-item">
+              <div class="metric-label">Estimated SNR</div>
+              <div class="metric-value" id="valSNR" style="color: var(--accent-purple);">0.0 <span class="metric-unit">dB</span></div>
+            </div>
+
+            <!-- Metric 5: False Alarm Rate -->
+            <div class="metric-item">
+              <div class="metric-label">FAR Rate</div>
+              <div class="metric-value" id="valFAR" style="color: #ff5577;">0.0 <span class="metric-unit">/min</span></div>
+            </div>
+
+            <!-- Metric 6: Trigger Count -->
+            <div class="metric-item">
+              <div class="metric-label">Triggers</div>
+              <div class="metric-value" id="valTriggers" style="color: #fff;">0</div>
+            </div>
           </div>
 
-          <!-- Metric 3: STA/LTA Ratio -->
-          <div class="metric-item">
-            <div class="metric-label">STA/LTA Ratio</div>
-            <div class="metric-value" id="valRatio" style="color: var(--accent-orange);">1.00</div>
+          <div class="pipeline-summary" id="pipelineSummary">
+            Capillary: 0.01 Hz HPF &bull; ADC: ADS1220 (24-bit) &bull; Porous Manifold: Active &bull; Noise Floor: -59 dB/Hz
           </div>
-
-          <!-- Metric 4: Estimated SNR -->
-          <div class="metric-item">
-            <div class="metric-label">Estimated SNR</div>
-            <div class="metric-value" id="valSNR" style="color: var(--accent-purple);">0.0 <span class="metric-unit">dB</span></div>
-          </div>
-
-          <!-- Metric 5: False Alarm Rate -->
-          <div class="metric-item">
-            <div class="metric-label">False Alarm Rate (FAR)</div>
-            <div class="metric-value" id="valFAR" style="color: #ff5577;">0.0 <span class="metric-unit">/min</span></div>
-          </div>
-
-          <!-- Metric 6: Trigger Count -->
-          <div class="metric-item">
-            <div class="metric-label">Trigger Events</div>
-            <div class="metric-value" id="valTriggers" style="color: #fff;">0</div>
-          </div>
-        </div>
-
-        <div class="pipeline-summary" id="pipelineSummary">
-          Capillary: 0.01 Hz HPF &bull; ADC: ADS1220 (24-bit) &bull; Porous Manifold: Active &bull; Noise Floor: -59 dB/Hz
         </div>
       </div>
-    </div>
+
+    </main>
   </div>
 
   <script>
@@ -663,7 +733,6 @@
       }
 
       // 4. Wind Noise with Porous Pipe Manifold Rejection Model
-      // Porous array reduces incoherent spatial wind noise by 18 dB (factor of ~8x in amplitude)
       const windAtten = (userParams.manifold === 'active') ? 0.125 : 1.0;
       const windNoisePa = windGen.next(userParams.wind / 1000.0) * windAtten;
 
@@ -781,13 +850,11 @@
       let processedSignal;
       if (mode === "clean") {
         processedSignal = removeDCAndDetrend(slice);
-        // Hann Window to eliminate spectral leakage
         for (let i = 0; i < FFT_SIZE; i++) {
           const hann = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (FFT_SIZE - 1)));
           real[i] = processedSignal[i] * hann;
         }
       } else {
-        // Raw DC spike & rectangular window demonstration
         processedSignal = slice;
         for (let i = 0; i < FFT_SIZE; i++) {
           real[i] = processedSignal[i];
@@ -804,7 +871,6 @@
         const freq = (i * FS) / FFT_SIZE;
         if (freq <= 20.0) {
           freqs.push(freq.toFixed(2));
-          // Correct amplitude scaling for Hann window (factor of 2 for single-sided + 2 for Hann loss)
           const windowGain = (mode === "clean") ? 2.0 : 1.0;
           const mag = (2 * Math.sqrt(real[i] * real[i] + imag[i] * imag[i]) / FFT_SIZE) * windowGain;
           magnitudes.push(mag * 1000.0); // Convert Pa to mPa
@@ -824,12 +890,11 @@
       const real = new Float64Array(segSize);
       const imag = new Float64Array(segSize);
 
-      // Hann Window & Window Power Sum S2 = sum(w^2)
       let sumW2 = 0;
       for (let i = 0; i < segSize; i++) {
         const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (segSize - 1)));
         real[i] = detrended[i] * w;
-        sumW2 += w * w; // sumW2 ≈ 0.375 * segSize
+        sumW2 += w * w;
       }
 
       cooleyTukeyFFT(real, imag);
@@ -848,7 +913,7 @@
           const power = (real[i] * real[i] + imag[i] * imag[i]) * normFactor;
           const instantaneousDB = 10 * Math.log10(Math.max(power, 1e-15)); // dB re 1 Pa²/Hz
 
-          // Exponential smoothing for clear, stable telemetry trace (alpha = 0.25)
+          // Exponential smoothing for stable, clear display trace
           smoothedPSD[i] = smoothedPSD[i] * 0.75 + instantaneousDB * 0.25;
           psdDB.push(smoothedPSD[i].toFixed(1));
         }
@@ -885,7 +950,7 @@
       }
       wasTriggered = isTriggered;
 
-      // Prune triggers older than 60 seconds to compute live Triggers/min (FAR)
+      // Rolling 60-second FAR calculation
       triggerTimestamps = triggerTimestamps.filter(t => (currentTimeSec - t) <= 60);
       const windowSec = Math.min(Math.max(currentTimeSec, 5.0), 60.0);
       const farPerMin = ((triggerTimestamps.length / windowSec) * 60.0).toFixed(1);
@@ -924,7 +989,7 @@
         labels: timeAxis,
         datasets: [
           {
-            label: 'Raw Ambient Pressure (Pa)',
+            label: 'Raw Ambient (Pa)',
             borderColor: '#ffaa00',
             borderWidth: 1.5,
             pointRadius: 0,
@@ -932,7 +997,7 @@
             data: rawBuffer
           },
           {
-            label: 'Filtered Infrasound ΔP (mPa)',
+            label: 'Filtered ΔP (mPa)',
             borderColor: '#00f0ff',
             borderWidth: 1.5,
             pointRadius: 0,
@@ -946,22 +1011,22 @@
         maintainAspectRatio: false,
         animation: false,
         scales: {
-          x: { ticks: { color: '#888', maxTicksLimit: 6 } },
+          x: { ticks: { color: '#888', maxTicksLimit: 6, font: { size: 10 } } },
           yFiltered: {
             type: 'linear',
             position: 'left',
-            title: { display: true, text: 'Filtered (mPa)', color: '#00f0ff' },
-            ticks: { color: '#00f0ff' }
+            title: { display: true, text: 'Filtered (mPa)', color: '#00f0ff', font: { size: 10 } },
+            ticks: { color: '#00f0ff', font: { size: 10 } }
           },
           yRaw: {
             type: 'linear',
             position: 'right',
-            title: { display: true, text: 'Raw (Pa)', color: '#ffaa00' },
-            ticks: { color: '#ffaa00' },
+            title: { display: true, text: 'Raw (Pa)', color: '#ffaa00', font: { size: 10 } },
+            ticks: { color: '#ffaa00', font: { size: 10 } },
             grid: { drawOnChartArea: false }
           }
         },
-        plugins: { legend: { labels: { color: '#eee', boxWidth: 12 } } }
+        plugins: { legend: { labels: { color: '#eee', boxWidth: 10, font: { size: 10 } } } }
       }
     });
 
@@ -985,10 +1050,10 @@
         maintainAspectRatio: false,
         animation: false,
         scales: {
-          x: { title: { display: true, text: 'Frequency (Hz)', color: '#888' }, ticks: { color: '#888' } },
-          y: { title: { display: true, text: 'mPa', color: '#888' }, ticks: { color: '#888' }, min: 0 }
+          x: { title: { display: true, text: 'Frequency (Hz)', color: '#888', font: { size: 10 } }, ticks: { color: '#888', font: { size: 10 } } },
+          y: { title: { display: true, text: 'mPa', color: '#888', font: { size: 10 } }, ticks: { color: '#888', font: { size: 10 } }, min: 0 }
         },
-        plugins: { legend: { labels: { color: '#eee', boxWidth: 12 } } }
+        plugins: { legend: { labels: { color: '#eee', boxWidth: 10, font: { size: 10 } } } }
       }
     });
 
@@ -1012,15 +1077,15 @@
         maintainAspectRatio: false,
         animation: false,
         scales: {
-          x: { title: { display: true, text: 'Frequency (Hz)', color: '#888' }, ticks: { color: '#888' } },
+          x: { title: { display: true, text: 'Frequency (Hz)', color: '#888', font: { size: 10 } }, ticks: { color: '#888', font: { size: 10 } } },
           y: {
-            title: { display: true, text: 'dB re 1 Pa²/Hz', color: '#888' },
-            ticks: { color: '#888' },
+            title: { display: true, text: 'dB re 1 Pa²/Hz', color: '#888', font: { size: 10 } },
+            ticks: { color: '#888', font: { size: 10 } },
             min: -110,
             max: -20
           }
         },
-        plugins: { legend: { labels: { color: '#eee', boxWidth: 12 } } }
+        plugins: { legend: { labels: { color: '#eee', boxWidth: 10, font: { size: 10 } } } }
       }
     });
 
@@ -1043,9 +1108,8 @@
         dspMode: document.getElementById('selectDSPMode').value
       };
 
-      // Update subtitle on FFT tile to reflect current conditioning mode
       document.getElementById('fftTileSub').innerText = 
-        userParams.dspMode === 'clean' ? '0.01 - 20 Hz (Clean Hann Windowed)' : '⚠️ RAW UNCONDITIONED (DC Spike Visible)';
+        userParams.dspMode === 'clean' ? '0.01 - 20 Hz (Clean Hann Windowed)' : '⚠️ RAW UNCONDITIONED (DC Spike)';
 
       // Process 5 samples per tick (100 SPS streaming rate)
       for (let i = 0; i < 5; i++) {
@@ -1061,20 +1125,20 @@
       chartTime.data.datasets[1].data = filteredBuffer.map(v => (v * 1000).toFixed(2));
       chartTime.update('none');
 
-      // 2. Update Tile 2 FFT Plot (Raw vs Clean)
+      // 2. Update Tile 2 FFT Plot
       const inputSignal = userParams.dspMode === "raw" ? rawBuffer : filteredBuffer;
       const fftRes = computeFFT(inputSignal, userParams.dspMode);
       chartFFT.data.labels = fftRes.freqs;
       chartFFT.data.datasets[0].data = fftRes.magnitudes;
       chartFFT.update('none');
 
-      // 3. Update Tile 3 PSD Plot (Calculated in dB re 1 Pa²/Hz)
+      // 3. Update Tile 3 PSD Plot
       const psdRes = computePSD(filteredBuffer);
       chartPSD.data.labels = psdRes.freqs;
       chartPSD.data.datasets[0].data = psdRes.psdDB;
       chartPSD.update('none');
 
-      // 4. Update Tile 4 STA/LTA, FAR, and Telemetry
+      // 4. Update Tile 4 Telemetry
       const metrics = computeTelemetry(
         filteredBuffer,
         userParams.sta,
@@ -1106,7 +1170,7 @@
       const pneuLabel = userParams.capillary === 'enabled' ? '0.01 Hz HPF' : 'Bypassed';
       const manifoldLabel = userParams.manifold === 'active' ? 'Active (-18 dB)' : 'Bypassed';
       document.getElementById('pipelineSummary').innerHTML = 
-        `Capillary: <b>${pneuLabel}</b> &bull; ADC: <b>${adcLabel}</b> &bull; Porous Manifold: <b>${manifoldLabel}</b> &bull; Noise Floor: <b>-59 dB re 1 Pa²/Hz</b>`;
+        `Capillary: <b>${pneuLabel}</b> &bull; ADC: <b>${adcLabel}</b> &bull; Porous Array: <b>${manifoldLabel}</b> &bull; Noise: <b>-59 dB/Hz</b>`;
 
     }, 50);
 
