@@ -292,7 +292,7 @@ def alert_board(metrics, det):
       </div>
       <div style="display:flex;gap:20px;font-size:11px;text-align:right;">
         <div><span style="color:#94a3b8;">SNR</span><br><b style="color:#00d2ff;">{metrics['snr_db']:.1f} dB</b></div>
-        <div><span style="color:#94a3b8;">DOMINANT PSD</span><br><b style="color:#ffffff;">{freq}</b></div>
+        <div><span style="color:#94a3b8;">DOMINANT PSD FREQ</span><br><b style="color:#ffffff;">{freq}</b></div>
         <div><span style="color:#94a3b8;">STATUS</span><br><b style="color:{'#ef4444' if status=='EVENT DETECTED' else '#f59e0b' if status=='HIGH ACTIVITY' else '#34d399'};">{status}</b></div>
       </div>
     </div>
@@ -307,7 +307,7 @@ def metric_cards(rows, x_raw, metrics, det):
     vals = [
         ("CURRENT ΔP", f"{x_raw[-1]:.4f} Pa" if len(x_raw) else "0.0000 Pa", "#00d2ff"),
         ("RMS PRESSURE", f"{metrics['rms']:.4f} Pa", "#ffffff"),
-        ("DOMINANT PSD", dom, "#00d2ff"),
+        ("DOMINANT PSD FREQ", dom, "#00d2ff"),
         ("NOISE FLOOR", f"{metrics['noise_floor']:.2e}", "#94a3b8"),
         ("SNR", f"{metrics['snr_db']:.1f} dB", "#34d399"),
         ("TEMPERATURE", temp, "#f59e0b"),
