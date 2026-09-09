@@ -23,7 +23,7 @@ st.markdown('''<div class="workflow">
 st.markdown("## System Architecture")
 st.markdown('''<div class="arch">PRESSURE / INFRASOUND
         ↓
-MS5611 / DPS310
+DIFFERENTIAL SENSOR 
         ↓
 INA333 + FILTER
         ↓
