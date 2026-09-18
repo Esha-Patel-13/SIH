@@ -1,7 +1,25 @@
 import streamlit as st
 from core.ui import inject_css
 from core.runtime import init_state, restart_demo
-
+#new
+st.markdown(
+    """
+    <style>
+    /* Target the profile popover avatar and iframe wrapper */
+    div[class*="viewerBadge"],
+    div[class*="ProfileBadge"],
+    div[class*="floatingMenu"],
+    a[href*="share.streamlit.io/user"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+#new_over
 st.set_page_config(page_title="SIH26144 Microbarometer", page_icon=":material/air:", layout="wide", initial_sidebar_state="expanded")
 inject_css()
 init_state()
