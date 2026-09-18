@@ -241,12 +241,26 @@ CSS = r"""
   font-weight: 700;
   color: #f1f5f9;
 }
+/*new*/
+/* Hide Streamlit creator badge */
+[class*="viewerBadge"] {
+    display: none !important;
+}
+
+/* Hide Streamlit footer */
+footer {
+    visibility: hidden !important;
+}
+
+/* Hide deploy button */
+[data-testid="stDeployButton"] {
+    display: none !important;
+}
 """
 
 def inject_css():
     st.markdown(f"<style>{CSS}</style>", unsafe_allow_html=True)
-
-
+    
 def header(source_label=None):
     chip_text = f"SYSTEM ONLINE • {source_label} • 100 Hz" if source_label else "SYSTEM ONLINE • 100 Hz"
     st.markdown(f"""
