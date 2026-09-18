@@ -5,36 +5,87 @@ from core.runtime import init_state, restart_demo
 import streamlit.components.v1 as components
 #new_start
 
-# Inject JavaScript to reach into parent window and remove the Streamlit Cloud footer badge
 components.html(
     """
     <script>
-    function removeBadges() {
-        try {
-            const parentDoc = window.parent.document;
-            
-            // 1. Remove by Streamlit Cloud data-testids and classes
-            const elements = parentDoc.querySelectorAll(
-                'div[data-testid="stViewerBadge"], div[class*="viewerBadge"], [data-testid="stToolbar"], footer'
-            );
-            elements.forEach(el => el.style.setProperty('display', 'none', 'important'));
-            
-            // 2. Remove by text content ("Created by" / "Hosted with Streamlit")
-            const allElements = parentDoc.querySelectorAll('div, a, span, p');
+    function hideAllBranding() {
+        // Collect all accessible window levels (top window + parent window)
+        const docs = [];
+        try { if (window.top && window.top.document) docs.push(window.top.document); } catch(e) {}
+        try { if (window.parent && window.parent.document) docs.push(window.parent.document); } catch(e) {}
+        try { if (window.document) docs.push(window.document); } catch(e) {}
+
+        docs.forEach(doc => {
+            // 1. Inject aggressive CSS rule into the head of each document
+            if (!doc.getElementById('custom-hide-style')) {
+                const style = doc.createElement('style');
+                style.id = 'custom-hide-style';
+                style.innerHTML = `
+                    div[data-testid="stViewerBadge"],
+                    div[class*="viewerBadge"],
+                    div[class*="ViewerBadge"],
+                    div[class*="ProfileBadge"],
+                    div[class*="toolbar"],
+                    footer,
+                    #MainMenu,
+                    a[href*="github.com/esha-patel-13"],
+                    a[href*="streamlit.io"] {
+                        display: none !important;
+                        opacity: 0 !important;
+                        visibility: hidden !important;
+                        pointer-events: none !important;
+                    }
+                `;
+                doc.head.appendChild(style);
+            }
+
+            // 2. Search and remove all elements containing the badge text or github link
+            const allElements = doc.querySelectorAll('div, a, span, p, footer, button');
             allElements.forEach(el => {
-                if (el.textContent && (el.textContent.includes('Created by') || el.textContent.includes('Hosted with Streamlit'))) {
+                const text = el.innerText || el.textContent || '';
+                const href = el.getAttribute('href') || '';
+                if (
+                    text.includes('Created by') || 
+                    text.includes('Hosted with Streamlit') || 
+                    text.includes('esha-patel-13') ||
+                    href.includes('esha-patel-13') ||
+                    href.includes('streamlit.app')
+                ) {
                     el.style.setProperty('display', 'none', 'important');
-                    if (el.parentElement) el.parentElement.style.setProperty('display', 'none', 'important');
+                    if (el.parentElement) {
+                        el.parentElement.style.setProperty('display', 'none', 'important');
+                    }
                 }
             });
-        } catch (e) {
-            console.log(e);
-        }
+
+            // 3. Fallback: Place a matching dark cover-up box directly over the bottom-right corner
+            if (!doc.getElementById('badge-cover-box')) {
+                const cover = doc.createElement('div');
+                cover.id = 'badge-cover-box';
+                cover.style.cssText = `
+                    position: fixed !important;
+                    bottom: 0px !important;
+                    right: 0px !important;
+                    width: 320px !important;
+                    height: 48px !important;
+                    background-color: #0e1117 !important;
+                    z-index: 999999999 !important;
+                    pointer-events: none !important;
+                `;
+                doc.body.appendChild(cover);
+            }
+        });
     }
 
-    // Run repeatedly to catch dynamic renders
-    removeBadges();
-    setInterval(removeBadges, 500);
+    // Run immediately and continuously monitor DOM changes
+    hideAllBranding();
+    setInterval(hideAllBranding, 300);
+
+    try {
+        const target = window.top.document.body || window.parent.document.body;
+        const observer = new MutationObserver(hideAllBranding);
+        observer.observe(target, { childList: true, subtree: true });
+    } catch(e) {}
     </script>
     """,
     height=0,
