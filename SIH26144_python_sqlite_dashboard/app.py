@@ -2,6 +2,46 @@ import streamlit as st
 from core.ui import inject_css
 from core.runtime import init_state, restart_demo
 
+import streamlit.components.v1 as components
+#new_start
+
+# Inject JavaScript to reach into parent window and remove the Streamlit Cloud footer badge
+components.html(
+    """
+    <script>
+    function removeBadges() {
+        try {
+            const parentDoc = window.parent.document;
+            
+            // 1. Remove by Streamlit Cloud data-testids and classes
+            const elements = parentDoc.querySelectorAll(
+                'div[data-testid="stViewerBadge"], div[class*="viewerBadge"], [data-testid="stToolbar"], footer'
+            );
+            elements.forEach(el => el.style.setProperty('display', 'none', 'important'));
+            
+            // 2. Remove by text content ("Created by" / "Hosted with Streamlit")
+            const allElements = parentDoc.querySelectorAll('div, a, span, p');
+            allElements.forEach(el => {
+                if (el.textContent && (el.textContent.includes('Created by') || el.textContent.includes('Hosted with Streamlit'))) {
+                    el.style.setProperty('display', 'none', 'important');
+                    if (el.parentElement) el.parentElement.style.setProperty('display', 'none', 'important');
+                }
+            });
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    // Run repeatedly to catch dynamic renders
+    removeBadges();
+    setInterval(removeBadges, 500);
+    </script>
+    """,
+    height=0,
+    width=0
+)
+#new_over
+
 st.set_page_config(page_title="SIH26144 Microbarometer", page_icon=":material/air:", layout="wide", initial_sidebar_state="expanded")
 inject_css()
 init_state()
