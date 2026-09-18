@@ -261,6 +261,18 @@ footer {
 def inject_css():
     st.markdown(f"<style>{CSS}</style>", unsafe_allow_html=True)
     
+    st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        div[data-testid="stToolbar"] {visibility: hidden !important;}
+        div[data-testid="stDecoration"] {visibility: hidden !important;}
+        div[data-testid="stStatusWidget"] {visibility: hidden !important;}
+        .stDeployButton {display: none !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    
 def header(source_label=None):
     chip_text = f"SYSTEM ONLINE • {source_label} • 100 Hz" if source_label else "SYSTEM ONLINE • 100 Hz"
     st.markdown(f"""
