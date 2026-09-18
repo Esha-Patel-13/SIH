@@ -3,47 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Infrasound Microbarometer Dashboard</title>
-    <!-- Stlite (Serverless Streamlit WebAssembly) CDN -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.58.0/build/stlite.css"
-    />
+    <title>SIH26144 Microbarometer Infrasound Dashboard</title>
+    <!-- Stlite (Streamlit WebAssembly) CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.76.0/build/stlite.css" />
     <style>
-      body, html {
+      html, body, #root {
+        width: 100%;
+        height: 100%;
         margin: 0;
         padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-      }
-      #root {
-        width: 100%;
-        height: 100%;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.58.0/build/stlite.js"></script>
+    <!-- Stlite JS Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/browser@0.76.0/build/stlite.js"></script>
     <script>
       stlite.mount(
         {
-          // List the Python dependencies required by your app
+          entrypoint: "app.py",
+          files: {
+            // Main App
+            "app.py": { url: "./app.py" },
+
+            // All Core Python Modules
+            "core/config.py": { url: "./core/config.py" },
+            "core/data_source.py": { url: "./core/data_source.py" },
+            "core/database.py": { url: "./core/database.py" },
+            "core/dsp.py": { url: "./core/dsp.py" },
+            "core/plots.py": { url: "./core/plots.py" },
+            "core/runtime.py": { url: "./core/runtime.py" },
+            "core/ui.py": { url: "./core/ui.py" },
+
+            // SQLite Database
+            "data/microbarometer.db": { url: "./data/microbarometer.db" },
+
+            // All 7 Navigation Pages
+            "pages/1_Live_Dashboard.py": { url: "./pages/1_Live_Dashboard.py" },
+            "pages/2_Signal_Analysis.py": { url: "./pages/2_Signal_Analysis.py" },
+            "pages/3_Events.py": { url: "./pages/3_Events.py" },
+            "pages/4_System.py": { url: "./pages/4_System.py" },
+            "pages/5_Prototype.py": { url: "./pages/5_Prototype.py" },
+            "pages/6_About.py": { url: "./pages/6_About.py" },
+            "pages/7_Calibration.py": { url: "./pages/7_Calibration.py" }
+          },
           requirements: [
             "numpy",
             "pandas",
             "scipy",
             "plotly",
+            "matplotlib",
             "altair"
-          ],
-          entrypoint: "app.py",
-          files: {
-            "app.py": {
-              url: "./app.py",
-            }
-          },
+          ]
         },
         document.getElementById("root")
       );
